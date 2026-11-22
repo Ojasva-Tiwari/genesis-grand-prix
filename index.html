@@ -1,0 +1,1807 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GENESIS GRAND PRIX | NODE Club BMSIT Hackathon</title>
+
+    <!-- Google Fonts: F1 Editorial Typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Michroma&family=Titillium+Web:ital,wght@0,400;0,600;0,700;0,900;1,700&family=Unbounded:wght@600;700;800;900&display=swap" rel="stylesheet">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        f1red: '#E10600',
+                        jetblack: '#0D0D0D',
+                        paddock: '#15151E',
+                        asphalt: '#1F1F2B',
+                        offwhite: '#F7F7F7',
+                    },
+                    fontFamily: {
+                        display: ['Unbounded', 'sans-serif'],
+                        tech: ['Michroma', 'sans-serif'],
+                        body: ['"Titillium Web"', 'sans-serif'],
+                        mono: ['"JetBrains Mono"', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Three.js Import Map (r160) -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <style>
+        /* Swiss Editorial & F1 Constructor Card Styling */
+        body {
+            font-family: 'Titillium Web', sans-serif;
+            background-color: #FFFFFF;
+            color: #0D0D0D;
+            overflow-x: hidden;
+        }
+
+        /* Halftone / Telemetry Dot Matrix Overlay for Constructor Cards */
+        .f1-card-dots {
+            background-image: radial-gradient(rgba(255, 255, 255, 0.22) 1.2px, transparent 1.2px);
+            background-size: 10px 10px;
+            mask-image: linear-gradient(90deg, transparent 5%, rgba(0,0,0,0.85) 45%, rgba(0,0,0,0.95) 85%, transparent 100%);
+            -webkit-mask-image: linear-gradient(90deg, transparent 5%, rgba(0,0,0,0.85) 45%, rgba(0,0,0,0.95) 85%, transparent 100%);
+        }
+
+        /* Subtle Diagonal Carbon Stripes */
+        .carbon-bg {
+            background-color: #15151E;
+            background-image: repeating-linear-gradient(
+                -45deg,
+                rgba(255, 255, 255, 0.025) 0px,
+                rgba(255, 255, 255, 0.025) 2px,
+                transparent 2px,
+                transparent 10px
+            );
+        }
+
+        /* Constructor Card Hover Motion */
+        .constructor-card {
+            transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.28s ease;
+        }
+        .constructor-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 18px 36px -10px rgba(0, 0, 0, 0.55);
+        }
+        .constructor-card:hover .f1-svg-car {
+            transform: translateX(8px);
+        }
+        .f1-svg-car {
+            transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        /* Studio Canvas Styling */
+        #three-container canvas {
+            display: block;
+            width: 100% !important;
+            height: 100% !important;
+            outline: none;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0D0D0D;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #E10600;
+        }
+
+        /* Print Styles for Digital F1 Paddock Pass */
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #paddock-pass-printable, #paddock-pass-printable * {
+                visibility: visible;
+            }
+            #paddock-pass-printable {
+                position: fixed;
+                left: 0;
+                top: 0;
+                width: 100%;
+                box-shadow: none !important;
+                border: 2px solid #0D0D0D !important;
+            }
+            .no-print {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+<body class="antialiased selection:bg-f1red selection:text-white">
+
+    <!-- TOP STICKY F1 TELEMETRY NAVBAR -->
+    <header class="sticky top-0 z-40 bg-jetblack text-white border-b border-white/10">
+        <!-- Main Nav Row -->
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+            <!-- Brand Mark -->
+            <a href="#" class="flex items-center gap-3 group">
+                <div class="bg-f1red px-2.5 py-1 rounded-sm font-display font-black text-sm tracking-tighter italic transform -skew-x-12">
+                    GP26
+                </div>
+                <div class="leading-tight">
+                    <div class="font-display font-extrabold text-sm sm:text-base tracking-wider uppercase">GENESIS GRAND PRIX</div>
+                    <div class="font-mono text-[10px] text-white/60 tracking-widest uppercase">NODE CLUB // BMSIT</div>
+                </div>
+            </a>
+
+            <!-- Desktop Navigation Links -->
+            <nav class="hidden md:flex items-center gap-6 font-body font-semibold text-sm tracking-wide">
+                <a href="#viewport-section" class="text-white/80 hover:text-white transition-colors">3D Garage</a>
+                <a href="#selected-teams" class="text-white border-b-2 border-f1red py-5 transition-colors">Selected Teams</a>
+                <a href="#circuit-section" class="text-white/80 hover:text-white transition-colors">Circuit &amp; PPT</a>
+                <a href="#tracks-section" class="text-white/80 hover:text-white transition-colors">Tracks</a>
+                <a href="#register-section" class="bg-f1red hover:bg-red-700 text-white font-mono text-xs font-bold uppercase px-4 py-2 rounded transition-colors">
+                    Register Crew
+                </a>
+            </nav>
+
+            <!-- Mobile CTA -->
+            <a href="#register-section" class="md:hidden bg-f1red text-white font-mono text-[11px] font-bold uppercase px-3 py-2 rounded">
+                Register
+            </a>
+        </div>
+    </header>
+
+    <!-- HERO SECTION: SWISS EDITORIAL + OPEN FLOATING 3D F1 VIEWPORT -->
+    <section id="viewport-section" class="bg-offwhite border-b border-jetblack">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
+            <!-- Hero Headline Row -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-end mb-4">
+                <div class="lg:col-span-8">
+                    <h1 class="font-display font-black text-3xl sm:text-5xl lg:text-6xl tracking-tight leading-[1.02] uppercase text-jetblack">
+                        ENGINEER AT <span class="text-f1red">POLE</span> VELOCITY.
+                    </h1>
+                </div>
+                <div class="lg:col-span-4 lg:text-right">
+                    <p class="font-body text-sm sm:text-base text-jetblack/80 mb-4">
+                        Qualify through the PPT Shootout. Claim one of 15 constructor slots on the BMSIT starting grid. Build, ship, and claim the podium.
+                    </p>
+                    <div class="flex flex-wrap lg:justify-end gap-2">
+                        <a href="#selected-teams" class="bg-jetblack hover:bg-f1red text-white font-mono text-xs font-bold uppercase px-4 py-2.5 rounded transition-colors">
+                            View Selected Teams
+                        </a>
+                        <a href="#register-section" class="bg-white hover:bg-jetblack hover:text-white text-jetblack border border-jetblack font-mono text-xs font-bold uppercase px-4 py-2.5 rounded transition-colors">
+                            Enter Qualifying
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- OPEN FLOATING 3D VIEWPORT CONTAINER (NO BOX FRAME) -->
+            <div class="relative w-full h-[360px] sm:h-[460px] lg:h-[540px] bg-transparent" id="drop-zone">
+                <!-- Three.js Mount -->
+                <div id="three-container" class="w-full h-full cursor-grab active:cursor-grabbing"></div>
+
+                <!-- Top-Left Telemetry HUD -->
+                <div class="absolute top-3 left-3 sm:top-4 sm:left-4 z-10 pointer-events-none flex flex-col gap-1.5">
+                    <div class="bg-jetblack/90 backdrop-blur text-white font-mono text-[10px] sm:text-xs px-3 py-1.5 rounded flex items-center gap-2 border border-white/15">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                        <span id="hud-model-status">INITIALIZING 3D GARAGE...</span>
+                    </div>
+                    <div id="hud-livery-badge" class="bg-white/90 backdrop-blur text-jetblack font-mono text-[10px] px-3 py-1 rounded border border-jetblack/20 inline-flex items-center gap-2 w-fit">
+                        <span id="hud-livery-swatch" class="w-2.5 h-2.5 rounded-full bg-f1red"></span>
+                        <span id="hud-livery-name">LIVERY: GENESIS WORKS RED</span>
+                    </div>
+                </div>
+
+                <!-- Top-Right Upload / .GLB Trigger -->
+                <div class="absolute top-3 right-3 sm:top-4 sm:right-4 z-10 flex items-center gap-2">
+                    <label for="glb-file-input" class="cursor-pointer bg-white/95 hover:bg-f1red hover:text-white text-jetblack border border-jetblack font-mono text-[10px] sm:text-xs font-bold uppercase px-3 py-1.5 rounded shadow-sm transition-colors flex items-center gap-1.5">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                        </svg>
+                        <span>Load .GLB</span>
+                    </label>
+                    <input type="file" id="glb-file-input" accept=".glb,.gltf" class="hidden">
+                </div>
+
+                <!-- Bottom Camera Control HUD -->
+                <div class="absolute bottom-3 left-3 right-3 sm:bottom-4 sm:left-4 sm:right-4 z-10 flex flex-wrap items-center justify-between gap-2 pointer-events-none">
+                    <div class="flex flex-wrap items-center gap-1.5 pointer-events-auto">
+                        <button data-cam="hero" class="cam-btn bg-jetblack text-white font-mono text-[10px] sm:text-xs font-bold uppercase px-2.5 py-1.5 rounded border border-jetblack hover:bg-f1red transition-colors">3/4 Hero</button>
+                        <button data-cam="front" class="cam-btn bg-white/95 text-jetblack font-mono text-[10px] sm:text-xs font-bold uppercase px-2.5 py-1.5 rounded border border-jetblack hover:bg-f1red hover:text-white transition-colors">Front Aero</button>
+                        <button data-cam="side" class="cam-btn bg-white/95 text-jetblack font-mono text-[10px] sm:text-xs font-bold uppercase px-2.5 py-1.5 rounded border border-jetblack hover:bg-f1red hover:text-white transition-colors">Side Profile</button>
+                        <button data-cam="top" class="cam-btn bg-white/95 text-jetblack font-mono text-[10px] sm:text-xs font-bold uppercase px-2.5 py-1.5 rounded border border-jetblack hover:bg-f1red hover:text-white transition-colors">Top View</button>
+                    </div>
+                    <button id="btn-toggle-rotate" class="pointer-events-auto bg-white/95 text-jetblack border border-jetblack hover:bg-jetblack hover:text-white font-mono text-[10px] sm:text-xs font-bold uppercase px-3 py-1.5 rounded transition-colors flex items-center gap-1.5">
+                        <span id="rotate-indicator" class="w-2 h-2 rounded-full bg-f1red"></span>
+                        <span>Turntable: ON</span>
+                    </button>
+                </div>
+
+                <!-- Drag & Drop Overlay -->
+                <div id="drag-overlay" class="hidden absolute inset-0 z-20 bg-f1red/90 text-white rounded-xl flex flex-col items-center justify-center p-6 text-center pointer-events-none">
+                    <div class="font-display font-black text-2xl sm:text-3xl uppercase mb-2">DROP .GLB MODEL HERE</div>
+                    <div class="font-mono text-xs uppercase tracking-widest">Auto-scaling &amp; PBR Studio Lighting Ready</div>
+                </div>
+
+                <!-- Loader Overlay -->
+                <div id="viewport-loader" class="hidden absolute inset-0 z-20 bg-offwhite/85 backdrop-blur-sm flex flex-col items-center justify-center gap-3">
+                    <div class="w-10 h-10 border-4 border-jetblack border-t-f1red rounded-full animate-spin"></div>
+                    <div id="loader-status" class="font-mono text-xs font-bold uppercase tracking-widest text-jetblack">LOADING TELEMETRY...</div>
+                </div>
+            </div>
+
+            <!-- LIVE TELEMETRY METRICS BAR -->
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mt-6">
+                <div class="bg-white border border-jetblack rounded-lg p-4">
+                    <div class="font-mono text-[10px] uppercase text-jetblack/60 tracking-widest">Starting Grid Cap</div>
+                    <div class="font-display font-black text-2xl sm:text-3xl text-jetblack mt-1">15 <span class="text-f1red text-base">TEAMS</span></div>
+                </div>
+                <div class="bg-white border border-jetblack rounded-lg p-4">
+                    <div class="font-mono text-[10px] uppercase text-jetblack/60 tracking-widest">Pit Crew Size</div>
+                    <div class="font-display font-black text-2xl sm:text-3xl text-jetblack mt-1">03 <span class="text-f1red text-base">MEMBERS</span></div>
+                </div>
+                <div class="bg-white border border-jetblack rounded-lg p-4">
+                    <div class="font-mono text-[10px] uppercase text-jetblack/60 tracking-widest">Grid Entry Fee</div>
+                    <div class="font-display font-black text-2xl sm:text-3xl text-jetblack mt-1">₹500 <span class="text-f1red text-base">/ TEAM</span></div>
+                </div>
+                <div class="bg-white border border-jetblack rounded-lg p-4">
+                    <div class="font-mono text-[10px] uppercase text-jetblack/60 tracking-widest">Qualifying Format</div>
+                    <div class="font-display font-black text-2xl sm:text-3xl text-jetblack mt-1">PPT <span class="text-f1red text-base">SHOOTOUT</span></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ========================================================================= -->
+    <!-- SELECTED TEAMS SECTION: OFFICIAL F1 CONSTRUCTOR CARDS SHOWCASE            -->
+    <!-- ========================================================================= -->
+    <section id="selected-teams" class="carbon-bg text-white py-14 sm:py-20 border-b border-jetblack">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+            <!-- Section Header Row (Styled Directly After F1 Teams Page) -->
+            <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-8">
+                <div>
+                    <div class="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-widest text-f1red font-bold mb-2">
+                        <span class="w-6 h-0.5 bg-f1red"></span>
+                        <span>PPT QUALIFYING SHORTLIST // OFFICIAL GRID</span>
+                    </div>
+                    <h2 class="font-display font-black text-3xl sm:text-5xl tracking-tight uppercase text-white">
+                        SELECTED TEAMS
+                    </h2>
+                    <p class="font-body text-white/75 text-base sm:text-lg mt-2">
+                        For the Genesis Grand Prix — click any constructor card to inspect their Paddock Pass or load their livery into the 3D Garage.
+                    </p>
+                </div>
+
+                <!-- View Toggle & Reset Controls -->
+                <div class="flex flex-wrap items-center gap-3">
+                    <!-- View Mode Switcher -->
+                    <div class="inline-flex bg-jetblack p-1 rounded-lg border border-white/15">
+                        <button id="view-cards-btn" class="px-3.5 py-2 rounded-md font-mono text-xs font-bold uppercase bg-f1red text-white transition-colors">
+                            Constructor Cards
+                        </button>
+                        <button id="view-tower-btn" class="px-3.5 py-2 rounded-md font-mono text-xs font-bold uppercase text-white/70 hover:text-white transition-colors">
+                            Timing Tower
+                        </button>
+                    </div>
+
+                    <button id="btn-reset-teams" class="font-mono text-xs uppercase text-white/60 hover:text-f1red underline underline-offset-4 transition-colors px-2 py-2">
+                        [Reset Sample Grid]
+                    </button>
+                </div>
+            </div>
+
+            <!-- Track Filter Bar & Live Slot Progress -->
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 mb-8 border-b border-white/10">
+                <div class="flex flex-wrap items-center gap-2" id="track-filter-bar">
+                    <button data-filter="ALL" class="filter-pill bg-white text-jetblack font-mono text-xs font-bold uppercase px-3.5 py-1.5 rounded-full transition-colors">
+                        All Tracks
+                    </button>
+                    <button data-filter="AI & Autonomy" class="filter-pill bg-white/10 hover:bg-white/20 text-white font-mono text-xs font-bold uppercase px-3.5 py-1.5 rounded-full transition-colors">
+                        AI &amp; Autonomy
+                    </button>
+                    <button data-filter="FinTech Telemetry" class="filter-pill bg-white/10 hover:bg-white/20 text-white font-mono text-xs font-bold uppercase px-3.5 py-1.5 rounded-full transition-colors">
+                        FinTech Telemetry
+                    </button>
+                    <button data-filter="Web3 & Security" class="filter-pill bg-white/10 hover:bg-white/20 text-white font-mono text-xs font-bold uppercase px-3.5 py-1.5 rounded-full transition-colors">
+                        Web3 &amp; Security
+                    </button>
+                    <button data-filter="Sustainable Mobility" class="filter-pill bg-white/10 hover:bg-white/20 text-white font-mono text-xs font-bold uppercase px-3.5 py-1.5 rounded-full transition-colors">
+                        Sustainable Mobility
+                    </button>
+                </div>
+
+                <div class="flex items-center gap-3 font-mono text-xs">
+                    <span class="text-white/60 uppercase">SLOTS FILLED:</span>
+                    <span id="grid-slot-badge" class="bg-f1red text-white font-bold px-2.5 py-1 rounded">08 / 15</span>
+                </div>
+            </div>
+
+            <!-- CONSTRUCTOR CARDS GRID (2-COLUMN F1 STYLE) -->
+            <div id="constructor-cards-grid" class="grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-6">
+                <!-- Dynamically populated with F1 Constructor Cards -->
+            </div>
+
+            <!-- COMPACT F1 TIMING TOWER VIEW (TOGGLEABLE) -->
+            <div id="timing-tower-view" class="hidden bg-jetblack border border-white/15 rounded-xl overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="border-b border-white/15 bg-white/5 font-mono text-[11px] uppercase text-white/60">
+                                <th class="py-3.5 px-4">POS</th>
+                                <th class="py-3.5 px-4">CONSTRUCTOR / TEAM</th>
+                                <th class="py-3.5 px-4">PIT CREW (3 DRIVERS)</th>
+                                <th class="py-3.5 px-4">TRACK</th>
+                                <th class="py-3.5 px-4 text-right">PASS</th>
+                            </tr>
+                        </thead>
+                        <tbody id="timing-tower-body" class="divide-y divide-white/10 text-sm">
+                            <!-- Dynamically populated -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- CIRCUIT TIMELINE & INTERACTIVE QUALIFYING PPT CHECKLIST -->
+    <section id="circuit-section" class="bg-white py-14 sm:py-20 border-b border-jetblack">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-10">
+
+                <!-- Left: 3-Stage Race Weekend Circuit -->
+                <div class="lg:col-span-5">
+                    <div class="font-mono text-xs font-bold uppercase text-f1red tracking-widest mb-2">RACE WEEKEND SCHEDULE</div>
+                    <h2 class="font-display font-black text-3xl sm:text-4xl uppercase text-jetblack mb-6">THE CIRCUIT</h2>
+
+                    <div class="space-y-4">
+                        <div class="border-2 border-jetblack rounded-xl p-5 bg-offwhite relative overflow-hidden">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="font-mono text-xs font-bold bg-f1red text-white px-2.5 py-0.5 rounded">STAGE 01 // QUALIFYING</span>
+                                <span class="font-mono text-xs text-jetblack/60">ONLINE PPT</span>
+                            </div>
+                            <h3 class="font-display font-bold text-lg uppercase">PPT Shootout &amp; Grid Selection</h3>
+                            <p class="text-sm text-jetblack/75 mt-1.5">
+                                Submit your 8-slide architecture deck. Top 15 teams earn a permanent constructor slot and custom livery on the Selected Teams board.
+                            </p>
+                        </div>
+
+                        <div class="border-2 border-jetblack rounded-xl p-5 bg-white">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="font-mono text-xs font-bold bg-jetblack text-white px-2.5 py-0.5 rounded">STAGE 02 // SCRUTINEERING</span>
+                                <span class="font-mono text-xs text-jetblack/60">CHECK-IN</span>
+                            </div>
+                            <h3 class="font-display font-bold text-lg uppercase">Pit Lane Verification</h3>
+                            <p class="text-sm text-jetblack/75 mt-1.5">
+                                Bring your printed or digital Genesis Paddock Pass to BMSIT Campus. Confirm your 3-member pit crew and ₹500 team registration.
+                            </p>
+                        </div>
+
+                        <div class="border-2 border-jetblack rounded-xl p-5 bg-white">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="font-mono text-xs font-bold bg-jetblack text-white px-2.5 py-0.5 rounded">STAGE 03 // GRAND PRIX</span>
+                                <span class="font-mono text-xs text-jetblack/60">24H SPRINT</span>
+                            </div>
+                            <h3 class="font-display font-bold text-lg uppercase">Lights Out &amp; Podium Demos</h3>
+                            <p class="text-sm text-jetblack/75 mt-1.5">
+                                24 hours of non-stop engineering, mentor pit-stops, and final checkered-flag demos in front of industry stewards.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right: Interactive 8-Slide Qualifying PPT Checklist -->
+                <div class="lg:col-span-7">
+                    <div class="border-2 border-jetblack rounded-xl p-6 sm:p-8 bg-offwhite shadow-[6px_6px_0px_0px_rgba(13,13,13,1)]">
+                        <div class="flex flex-wrap items-center justify-between gap-4 mb-5">
+                            <div>
+                                <div class="font-mono text-xs font-bold uppercase text-f1red">QUALIFYING TELEMETRY</div>
+                                <h3 class="font-display font-black text-2xl uppercase text-jetblack">8-Slide PPT Readiness</h3>
+                            </div>
+                            <div class="text-right">
+                                <div id="ppt-percent" class="font-display font-black text-3xl text-f1red">0%</div>
+                                <div class="font-mono text-[10px] uppercase text-jetblack/60">DECK READY</div>
+                            </div>
+                        </div>
+
+                        <!-- Progress Bar -->
+                        <div class="w-full h-3 bg-white border border-jetblack rounded-full overflow-hidden mb-6">
+                            <div id="ppt-progress-bar" class="h-full bg-f1red transition-all duration-300" style="width: 0%"></div>
+                        </div>
+
+                        <!-- Checklist Items -->
+                        <div id="ppt-checklist" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- 4 TECHNICAL TRACKS (SWISS GRID WITH F1 RED INVERSION) -->
+    <section id="tracks-section" class="bg-offwhite py-14 sm:py-20 border-b border-jetblack">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="mb-8">
+                <div class="font-mono text-xs font-bold uppercase text-f1red tracking-widest mb-2">TECHNICAL REGULATIONS</div>
+                <h2 class="font-display font-black text-3xl sm:text-4xl uppercase text-jetblack">4 GRAND PRIX TRACKS</h2>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 border-2 border-jetblack rounded-xl overflow-hidden bg-white">
+                <!-- Track 01 -->
+                <div class="group p-6 sm:p-8 border-b md:border-r border-jetblack hover:bg-f1red hover:text-white transition-colors duration-200">
+                    <div class="font-mono text-xs font-bold uppercase text-f1red group-hover:text-white/90 mb-2">SECTOR 01</div>
+                    <h3 class="font-display font-black text-2xl uppercase mb-3">AI &amp; Autonomy</h3>
+                    <p class="text-sm sm:text-base text-jetblack/75 group-hover:text-white/90">
+                        Autonomous agents, computer vision, real-time predictive telemetry, and multi-modal machine learning systems built for speed and precision.
+                    </p>
+                </div>
+
+                <!-- Track 02 -->
+                <div class="group p-6 sm:p-8 border-b border-jetblack hover:bg-f1red hover:text-white transition-colors duration-200">
+                    <div class="font-mono text-xs font-bold uppercase text-f1red group-hover:text-white/90 mb-2">SECTOR 02</div>
+                    <h3 class="font-display font-black text-2xl uppercase mb-3">FinTech Telemetry</h3>
+                    <p class="text-sm sm:text-base text-jetblack/75 group-hover:text-white/90">
+                        High-frequency analytics, fraud detection engines, micro-payment rails, and intelligent personal finance dashboards.
+                    </p>
+                </div>
+
+                <!-- Track 03 -->
+                <div class="group p-6 sm:p-8 border-b md:border-b-0 md:border-r border-jetblack hover:bg-f1red hover:text-white transition-colors duration-200">
+                    <div class="font-mono text-xs font-bold uppercase text-f1red group-hover:text-white/90 mb-2">SECTOR 03</div>
+                    <h3 class="font-display font-black text-2xl uppercase mb-3">Web3 &amp; Security</h3>
+                    <p class="text-sm sm:text-base text-jetblack/75 group-hover:text-white/90">
+                        Zero-trust infrastructure, verifiable credentials, smart contract auditing tools, and decentralized developer tooling.
+                    </p>
+                </div>
+
+                <!-- Track 04 -->
+                <div class="group p-6 sm:p-8 hover:bg-f1red hover:text-white transition-colors duration-200">
+                    <div class="font-mono text-xs font-bold uppercase text-f1red group-hover:text-white/90 mb-2">SECTOR 04</div>
+                    <h3 class="font-display font-black text-2xl uppercase mb-3">Sustainable Mobility</h3>
+                    <p class="text-sm sm:text-base text-jetblack/75 group-hover:text-white/90">
+                        Smart EV routing, urban traffic optimization, carbon telemetry, and green energy management solutions for next-gen cities.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- TEAM REGISTRATION & CONSTRUCTOR LIVERY BUILDER -->
+    <section id="register-section" class="bg-white py-14 sm:py-20">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-8">
+                <div class="inline-block font-mono text-xs font-bold uppercase bg-f1red text-white px-3 py-1 rounded mb-3">
+                    CLAIM YOUR STARTING GRID SLOT
+                </div>
+                <h2 class="font-display font-black text-3xl sm:text-4xl uppercase text-jetblack">
+                    REGISTER PIT CREW
+                </h2>
+                <p class="text-sm sm:text-base text-jetblack/70 mt-2">
+                    Select your Constructor Livery &amp; enter all 3 crew members. Your official F1 Constructor Card will immediately appear on the Selected Teams grid!
+                </p>
+            </div>
+
+            <form id="team-register-form" class="bg-offwhite border-2 border-jetblack rounded-2xl p-6 sm:p-8 shadow-[8px_8px_0px_0px_rgba(13,13,13,1)] space-y-6">
+                <!-- Team Name & Track -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block font-mono text-xs font-bold uppercase mb-1.5">Constructor / Team Name *</label>
+                        <input type="text" id="input-team-name" required maxlength="26" placeholder="e.g., Apex Velocity Racing"
+                               class="w-full bg-white border-2 border-jetblack rounded-lg px-3.5 py-2.5 font-body font-semibold text-sm focus:outline-none focus:border-f1red">
+                    </div>
+                    <div>
+                        <label class="block font-mono text-xs font-bold uppercase mb-1.5">Technical Track *</label>
+                        <select id="input-track" required
+                                class="w-full bg-white border-2 border-jetblack rounded-lg px-3.5 py-2.5 font-body font-semibold text-sm focus:outline-none focus:border-f1red">
+                            <option value="AI & Autonomy">AI &amp; Autonomy</option>
+                            <option value="FinTech Telemetry">FinTech Telemetry</option>
+                            <option value="Web3 & Security">Web3 &amp; Security</option>
+                            <option value="Sustainable Mobility">Sustainable Mobility</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Constructor Livery Picker -->
+                <div>
+                    <label class="block font-mono text-xs font-bold uppercase mb-2">Select Your F1 Car Livery *</label>
+                    <div id="livery-picker-grid" class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                        <!-- Populated dynamically from LIVERY_PRESETS -->
+                    </div>
+                    <input type="hidden" id="input-livery-id" value="ferrari">
+                </div>
+
+                <!-- 3-Member Pit Crew Inputs -->
+                <div class="border-t border-jetblack/20 pt-5">
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="font-mono text-xs font-bold uppercase">Pit Crew Roster (Strictly 3 Members) *</span>
+                        <span class="font-mono text-[10px] text-f1red font-bold uppercase">First + Last Name</span>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div>
+                            <label class="block font-mono text-[10px] uppercase text-jetblack/60 mb-1">Driver 01 (Team Lead)</label>
+                            <input type="text" id="input-m1" required placeholder="Aarav Sharma"
+                                   class="w-full bg-white border border-jetblack rounded-lg px-3 py-2 text-sm font-semibold focus:outline-none focus:border-f1red">
+                        </div>
+                        <div>
+                            <label class="block font-mono text-[10px] uppercase text-jetblack/60 mb-1">Driver 02 (Engineer)</label>
+                            <input type="text" id="input-m2" required placeholder="Diya Nair"
+                                   class="w-full bg-white border border-jetblack rounded-lg px-3 py-2 text-sm font-semibold focus:outline-none focus:border-f1red">
+                        </div>
+                        <div>
+                            <label class="block font-mono text-[10px] uppercase text-jetblack/60 mb-1">Driver 03 (Strategist)</label>
+                            <input type="text" id="input-m3" required placeholder="Rohan Kulkarni"
+                                   class="w-full bg-white border border-jetblack rounded-lg px-3 py-2 text-sm font-semibold focus:outline-none focus:border-f1red">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- College / Contact -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block font-mono text-xs font-bold uppercase mb-1.5">Institution / College *</label>
+                        <input type="text" id="input-college" required value="BMSIT & M, Bengaluru"
+                               class="w-full bg-white border border-jetblack rounded-lg px-3.5 py-2 text-sm font-semibold focus:outline-none focus:border-f1red">
+                    </div>
+                    <div>
+                        <label class="block font-mono text-xs font-bold uppercase mb-1.5">Team Lead Email *</label>
+                        <input type="email" id="input-email" required placeholder="lead@bmsit.in"
+                               class="w-full bg-white border border-jetblack rounded-lg px-3.5 py-2 text-sm font-semibold focus:outline-none focus:border-f1red">
+                    </div>
+                </div>
+
+                <button type="submit" id="btn-submit-team"
+                        class="w-full bg-f1red hover:bg-jetblack text-white font-display font-black text-sm sm:text-base uppercase py-4 rounded-xl border-2 border-jetblack transition-colors cursor-pointer">
+                    LOCK GRID SLOT &amp; GENERATE CONSTRUCTOR CARD
+                </button>
+            </form>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="bg-jetblack text-white border-t border-white/10 py-8">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-mono text-white/60">
+            <div>© 2026 GENESIS GRAND PRIX // NODE CLUB, BMSIT &amp; M</div>
+            <div>ENGINEERED FOR SPEED // ALL TELEMETRY LIVE</div>
+        </div>
+    </footer>
+
+    <!-- DIGITAL F1 PADDOCK PASS MODAL -->
+    <div id="paddock-modal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="w-full max-w-lg space-y-3">
+            <!-- Printable Pass Card -->
+            <div id="paddock-pass-printable" class="bg-white text-jetblack border-2 border-jetblack rounded-2xl overflow-hidden shadow-2xl">
+                <!-- Dynamic Livery Header -->
+                <div id="pass-header-banner" class="p-6 text-white relative overflow-hidden" style="background: linear-gradient(135deg, #990000, #E10600);">
+                    <div class="f1-card-dots absolute inset-0 pointer-events-none"></div>
+                    <div class="relative z-10 flex items-start justify-between">
+                        <div>
+                            <div class="font-mono text-[10px] uppercase tracking-widest opacity-85">GENESIS GRAND PRIX // OFFICIAL PADDOCK PASS</div>
+                            <h3 id="pass-team-name" class="font-display font-black text-2xl uppercase mt-1">SCUDERIA BMSIT</h3>
+                            <div id="pass-track" class="font-mono text-xs uppercase mt-1 opacity-90">AI &amp; AUTONOMY</div>
+                        </div>
+                        <div class="bg-black/35 backdrop-blur px-3 py-1.5 rounded-lg text-center border border-white/25">
+                            <div class="font-mono text-[9px] uppercase opacity-75">GRID</div>
+                            <div id="pass-grid-pos" class="font-display font-black text-xl leading-none">P01</div>
+                        </div>
+                    </div>
+                    <!-- Mini Car SVG inside Pass -->
+                    <div id="pass-car-preview" class="relative z-10 mt-4 max-w-[300px]"></div>
+                </div>
+
+                <!-- Pass Body -->
+                <div class="p-6 space-y-4">
+                    <div class="grid grid-cols-2 gap-4 text-xs font-mono border-b border-jetblack/15 pb-4">
+                        <div>
+                            <div class="text-jetblack/50 uppercase text-[10px]">PASS ID</div>
+                            <div id="pass-id" class="font-bold text-jetblack">GGP-2026-001</div>
+                        </div>
+                        <div>
+                            <div class="text-jetblack/50 uppercase text-[10px]">INSTITUTION</div>
+                            <div id="pass-college" class="font-bold text-jetblack">BMSIT &amp; M</div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="font-mono text-[10px] uppercase text-jetblack/50 mb-2">AUTHORIZED PIT CREW (3 DRIVERS)</div>
+                        <div id="pass-crew-list" class="grid grid-cols-3 gap-2">
+                            <!-- Crew pills -->
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between pt-2 border-t border-dashed border-jetblack/25 text-[10px] font-mono text-jetblack/60">
+                        <span>STATUS: PPT QUALIFIED</span>
+                        <span>NODE CLUB // BMSIT</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Action Controls (No Print) -->
+            <div class="no-print flex items-center gap-3">
+                <button id="btn-load-pass-livery" class="flex-1 bg-f1red hover:bg-red-700 text-white font-mono text-xs font-bold uppercase py-3 px-4 rounded-xl transition-colors">
+                    Preview Livery in 3D Garage
+                </button>
+                <button id="btn-print-pass" class="bg-jetblack hover:bg-neutral-800 text-white font-mono text-xs font-bold uppercase py-3 px-4 rounded-xl border border-white/20 transition-colors">
+                    Print Pass
+                </button>
+                <button id="btn-close-modal" class="bg-white hover:bg-neutral-200 text-jetblack font-mono text-xs font-bold uppercase py-3 px-4 rounded-xl transition-colors">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- NON-BLOCKING TELEMETRY TOAST NOTIFICATION -->
+    <div id="f1-toast" class="no-print fixed bottom-6 right-6 z-50 max-w-sm bg-jetblack text-white border-2 border-f1red px-4 py-3 rounded-lg font-mono text-xs shadow-[6px_6px_0px_0px_rgba(225,6,0,1)] transition-all duration-300 opacity-0 pointer-events-none translate-y-4">
+        <div class="flex items-center gap-2">
+            <span class="w-2 h-2 bg-f1red shrink-0"></span>
+            <span id="f1-toast-msg" class="uppercase font-bold tracking-wide"></span>
+        </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- THREE.JS 3D F1 STUDIO VIEWPORT MODULE                                     -->
+    <!-- ========================================================================= -->
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+        import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+        let scene, camera, renderer, controls;
+        let currentModel = null;
+        let proceduralBodyMeshes = [];
+        let proceduralAccentMeshes = [];
+        let autoRotate = true;
+        let activeCamTween = null;
+        let targetZoomDist = null;
+
+        const CAM_PRESETS = {
+            hero:  { pos: new THREE.Vector3(4.35, 1.65, 4.25), target: new THREE.Vector3(0, 0.45, 0) },
+            front: { pos: new THREE.Vector3(0.0, 1.15, 5.8), target: new THREE.Vector3(0, 0.45, 0) },
+            side:  { pos: new THREE.Vector3(6.4, 1.15, 0.0), target: new THREE.Vector3(0, 0.45, 0) },
+            top:   { pos: new THREE.Vector3(0.01, 7.2, 0.2), target: new THREE.Vector3(0, 0, 0) }
+        };
+
+        function setViewportLoader(visible, statusText = "LOADING MODEL...") {
+            const loader = document.getElementById('viewport-loader');
+            const label = document.getElementById('loader-status');
+            if (label) label.innerText = statusText;
+            if (loader) loader.classList.toggle('hidden', !visible);
+        }
+
+        function updateHUDStatus(text) {
+            const el = document.getElementById('hud-model-status');
+            if (el) el.innerText = text;
+        }
+
+        // --- 1. STUDIO INITIALIZATION ---
+        function initStudio() {
+            const container = document.getElementById('three-container');
+            if (!container) return;
+
+            scene = new THREE.Scene();
+            scene.background = null; // Transparent so the car floats openly on the page
+
+            const width = container.clientWidth || 800;
+            const height = container.clientHeight || 480;
+
+            camera = new THREE.PerspectiveCamera(34, width / height, 0.1, 100);
+            camera.position.copy(CAM_PRESETS.hero.pos);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
+            renderer.setSize(width, height);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.setClearColor(0x000000, 0);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.15;
+            container.appendChild(renderer.domElement);
+
+            // Studio PBR Environment Reflections
+            const pmremGenerator = new THREE.PMREMGenerator(renderer);
+            scene.environment = pmremGenerator.fromScene(new RoomEnvironment(), 0.04).texture;
+            pmremGenerator.dispose();
+
+            // Three-Point Studio Lighting
+            const hemiLight = new THREE.HemisphereLight(0xffffff, 0xe5e7eb, 0.75);
+            scene.add(hemiLight);
+
+            const keyLight = new THREE.DirectionalLight(0xffffff, 2.2);
+            keyLight.position.set(6, 10, 7);
+            keyLight.castShadow = true;
+            keyLight.shadow.mapSize.set(2048, 2048);
+            keyLight.shadow.camera.near = 1;
+            keyLight.shadow.camera.far = 25;
+            const d = 5;
+            keyLight.shadow.camera.left = -d;
+            keyLight.shadow.camera.right = d;
+            keyLight.shadow.camera.top = d;
+            keyLight.shadow.camera.bottom = -d;
+            keyLight.shadow.bias = -0.0005;
+            scene.add(keyLight);
+
+            const rimLight = new THREE.DirectionalLight(0xffffff, 1.1);
+            rimLight.position.set(-6, 5, -6);
+            scene.add(rimLight);
+
+            // Invisible Shadow-Catcher Floor (no box or grid, just a soft grounded shadow)
+            const shadowFloor = new THREE.Mesh(
+                new THREE.PlaneGeometry(24, 24),
+                new THREE.ShadowMaterial({ opacity: 0.18 })
+            );
+            shadowFloor.rotation.x = -Math.PI / 2;
+            shadowFloor.position.y = 0;
+            shadowFloor.receiveShadow = true;
+            scene.add(shadowFloor);
+
+            // OrbitControls
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.045;
+            controls.rotateSpeed = 0.65;
+            controls.zoomSpeed = 0.35;
+            controls.enablePan = false;
+            controls.maxPolarAngle = Math.PI / 2 - 0.03;
+            controls.minDistance = 4.8;
+            controls.maxDistance = 9.5;
+            controls.target.copy(CAM_PRESETS.hero.target);
+            controls.autoRotate = autoRotate;
+            controls.autoRotateSpeed = 0.9;
+
+            // Cancel preset tween if user interacts directly
+            controls.addEventListener('start', () => {
+                activeCamTween = null;
+            });
+
+            // Super-smooth damped mouse-wheel zoom (prevents sudden jumps & clipping)
+            renderer.domElement.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                activeCamTween = null;
+
+                if (targetZoomDist === null) {
+                    targetZoomDist = camera.position.distanceTo(controls.target);
+                }
+                const clampedDelta = Math.sign(e.deltaY) * Math.min(Math.abs(e.deltaY), 80);
+                targetZoomDist = THREE.MathUtils.clamp(
+                    targetZoomDist + clampedDelta * 0.009,
+                    controls.minDistance,
+                    controls.maxDistance
+                );
+            }, { passive: false, capture: true });
+
+            // Resize Handler
+            window.addEventListener('resize', () => {
+                const w = container.clientWidth || 800;
+                const h = container.clientHeight || 480;
+                camera.aspect = w / h;
+                camera.updateProjectionMatrix();
+                renderer.setSize(w, h);
+            });
+
+            // Bind Camera Preset & Turntable Controls
+            initViewportControls();
+            initGLBUploadAndDrop();
+
+            // Render studio car immediately so there is zero loading hang
+            loadProceduralFallback();
+
+            // Start Render Loop
+            animate();
+
+            // Silently check for a co-hosted f1_car.glb (skips preview sandboxes)
+            tryAutoLoadDefaultGLB();
+        }
+
+        async function tryAutoLoadDefaultGLB() {
+            const proto = window.location.protocol;
+            if ((proto !== 'http:' && proto !== 'https:') || window.location.href.includes('srcdoc')) {
+                return;
+            }
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), 1500);
+            try {
+                const res = await fetch('./f1_car.glb', { method: 'HEAD', signal: controller.signal });
+                clearTimeout(timer);
+                const ctype = (res.headers.get('content-type') || '').toLowerCase();
+                if (res.ok && !ctype.includes('text/html')) {
+                    loadGLBFromURL('./f1_car.glb', 'DEFAULT F1 .GLB LOADED', true);
+                }
+            } catch (_) {
+                clearTimeout(timer);
+            }
+        }
+
+        // --- 2. PROCEDURAL F1 CAR FALLBACK ---
+        function createProceduralF1Car(primaryHex = 0xE10600, secondaryHex = 0x111111) {
+            proceduralBodyMeshes = [];
+            proceduralAccentMeshes = [];
+
+            const group = new THREE.Group();
+
+            const bodyMat = new THREE.MeshStandardMaterial({
+                color: primaryHex,
+                metalness: 0.35,
+                roughness: 0.25
+            });
+            const accentMat = new THREE.MeshStandardMaterial({
+                color: secondaryHex,
+                metalness: 0.4,
+                roughness: 0.45
+            });
+            const carbonMat = new THREE.MeshStandardMaterial({
+                color: 0x16161a,
+                metalness: 0.3,
+                roughness: 0.6
+            });
+            const tireMat = new THREE.MeshStandardMaterial({
+                color: 0x18181b,
+                metalness: 0.1,
+                roughness: 0.85
+            });
+            const rimMat = new THREE.MeshStandardMaterial({
+                color: primaryHex,
+                metalness: 0.6,
+                roughness: 0.3
+            });
+
+            const addMesh = (geo, mat, pos, rot = [0, 0, 0], trackAs = null) => {
+                const m = new THREE.Mesh(geo, mat);
+                m.position.set(...pos);
+                m.rotation.set(...rot);
+                m.castShadow = true;
+                m.receiveShadow = true;
+                group.add(m);
+                if (trackAs === 'body') proceduralBodyMeshes.push(m);
+                if (trackAs === 'accent') proceduralAccentMeshes.push(m);
+                return m;
+            };
+
+            // Carbon Floor & Diffuser
+            addMesh(new THREE.BoxGeometry(1.38, 0.06, 3.6), carbonMat, [0, 0.14, 0.05]);
+
+            // Main Monocoque Chassis
+            addMesh(new THREE.BoxGeometry(0.62, 0.34, 2.5), bodyMat, [0, 0.36, 0.1], [0, 0, 0], 'body');
+
+            // Tapered Nose Cone
+            addMesh(new THREE.BoxGeometry(0.42, 0.2, 1.35), bodyMat, [0, 0.28, 1.72], [0.06, 0, 0], 'body');
+
+            // Sculpted Sidepods
+            addMesh(new THREE.BoxGeometry(0.42, 0.28, 1.45), bodyMat, [-0.52, 0.32, -0.05], [0, 0, 0], 'body');
+            addMesh(new THREE.BoxGeometry(0.42, 0.28, 1.45), bodyMat, [0.52, 0.32, -0.05], [0, 0, 0], 'body');
+
+            // Sidepod Livery Stripes
+            addMesh(new THREE.BoxGeometry(0.44, 0.06, 1.2), accentMat, [-0.52, 0.34, -0.05], [0, 0, 0], 'accent');
+            addMesh(new THREE.BoxGeometry(0.44, 0.06, 1.2), accentMat, [0.52, 0.34, -0.05], [0, 0, 0], 'accent');
+
+            // Engine Cover & Airbox
+            addMesh(new THREE.BoxGeometry(0.36, 0.42, 1.15), bodyMat, [0, 0.62, -0.62], [-0.14, 0, 0], 'body');
+            addMesh(new THREE.BoxGeometry(0.16, 0.22, 0.3), carbonMat, [0, 0.78, -0.15]);
+
+            // Cockpit & Halo
+            addMesh(new THREE.BoxGeometry(0.44, 0.12, 0.75), carbonMat, [0, 0.54, 0.35]);
+            const haloGeo = new THREE.TorusGeometry(0.24, 0.032, 10, 24, Math.PI);
+            addMesh(haloGeo, carbonMat, [0, 0.62, 0.42], [0.3, 0, 0]);
+
+            // Front Wing
+            addMesh(new THREE.BoxGeometry(1.78, 0.05, 0.42), accentMat, [0, 0.14, 2.28], [0, 0, 0], 'accent');
+            addMesh(new THREE.BoxGeometry(0.05, 0.2, 0.46), bodyMat, [-0.88, 0.22, 2.28], [0, 0, 0], 'body');
+            addMesh(new THREE.BoxGeometry(0.05, 0.2, 0.46), bodyMat, [0.88, 0.22, 2.28], [0, 0, 0], 'body');
+
+            // Rear Wing Assembly
+            addMesh(new THREE.BoxGeometry(1.12, 0.06, 0.38), bodyMat, [0, 0.88, -1.68], [0.18, 0, 0], 'body');
+            addMesh(new THREE.BoxGeometry(1.12, 0.05, 0.22), accentMat, [0, 0.72, -1.64], [0, 0, 0], 'accent');
+            addMesh(new THREE.BoxGeometry(0.05, 0.62, 0.45), carbonMat, [-0.56, 0.64, -1.66]);
+            addMesh(new THREE.BoxGeometry(0.05, 0.62, 0.45), carbonMat, [0.56, 0.64, -1.66]);
+
+            // 4 F1 Wheels
+            const wheelPositions = [
+                [-0.86, 0.34, 1.38],
+                [0.86, 0.34, 1.38],
+                [-0.88, 0.36, -1.24],
+                [0.88, 0.36, -1.24]
+            ];
+            wheelPositions.forEach(([x, y, z], idx) => {
+                const isRear = idx >= 2;
+                const radius = isRear ? 0.36 : 0.34;
+                const width = isRear ? 0.42 : 0.34;
+
+                const tire = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, width, 28), tireMat);
+                tire.rotation.z = Math.PI / 2;
+                tire.position.set(x, y, z);
+                tire.castShadow = true;
+                group.add(tire);
+
+                const rim = new THREE.Mesh(new THREE.CylinderGeometry(radius * 0.62, radius * 0.62, width + 0.015, 20), rimMat);
+                rim.rotation.z = Math.PI / 2;
+                rim.position.set(x, y, z);
+                group.add(rim);
+                proceduralBodyMeshes.push(rim);
+            });
+
+            return group;
+        }
+
+        function loadProceduralFallback() {
+            if (currentModel) scene.remove(currentModel);
+            currentModel = createProceduralF1Car(0xE10600, 0x111111);
+            currentModel.scale.setScalar(1.22);
+            scene.add(currentModel);
+            setViewportLoader(false);
+            updateHUDStatus("3D F1 STUDIO ACTIVE (DROP .GLB TO SWAP)");
+        }
+
+        // --- 3. .GLB LOADER (AUTO-CENTER & AUTO-SCALE) ---
+        function loadGLBFromURL(url, successLabel = "CUSTOM .GLB CAR LOADED", silentFallback = false) {
+            setViewportLoader(true, "LOADING 3D CHASSIS...");
+            const onLoadFail = () => {
+                if (!currentModel) loadProceduralFallback();
+                else setViewportLoader(false);
+                if (!silentFallback && window.showF1Toast) {
+                    window.showF1Toast("COULD NOT PARSE .GLB FILE — SHOWING STUDIO CHASSIS.");
+                }
+            };
+
+            try {
+                const loader = new GLTFLoader();
+                loader.load(
+                    url,
+                    (gltf) => {
+                        if (currentModel) scene.remove(currentModel);
+                        proceduralBodyMeshes = [];
+                        proceduralAccentMeshes = [];
+
+                        const model = gltf.scene;
+                        model.traverse((child) => {
+                            if (child.isMesh) {
+                                child.castShadow = true;
+                                child.receiveShadow = true;
+                            }
+                        });
+
+                        // Auto-scale to ideal studio length (~4.8 units) and ground at y = 0
+                        const box = new THREE.Box3().setFromObject(model);
+                        const size = box.getSize(new THREE.Vector3());
+                        const maxDim = Math.max(size.x, size.y, size.z) || 1;
+                        const scale = 4.8 / maxDim;
+                        model.scale.setScalar(scale);
+
+                        const scaledBox = new THREE.Box3().setFromObject(model);
+                        const center = scaledBox.getCenter(new THREE.Vector3());
+                        model.position.x -= center.x;
+                        model.position.z -= center.z;
+                        model.position.y -= scaledBox.min.y;
+
+                        currentModel = model;
+                        scene.add(currentModel);
+                        setViewportLoader(false);
+                        updateHUDStatus(successLabel);
+                        tweenCameraTo('hero');
+                    },
+                    undefined,
+                    onLoadFail
+                );
+            } catch (_) {
+                onLoadFail();
+            }
+        }
+
+        function handleGLBFile(file) {
+            if (!file) return;
+            const ext = file.name.toLowerCase();
+            if (!ext.endsWith('.glb') && !ext.endsWith('.gltf')) {
+                if (window.showF1Toast) window.showF1Toast("PLEASE UPLOAD A .GLB OR .GLTF 3D MODEL.");
+                return;
+            }
+            const blobUrl = URL.createObjectURL(file);
+            loadGLBFromURL(blobUrl, `LOADED: ${file.name.toUpperCase()}`, false);
+        }
+
+        function initGLBUploadAndDrop() {
+            const fileInput = document.getElementById('glb-file-input');
+            const dropZone = document.getElementById('drop-zone');
+            const dragOverlay = document.getElementById('drag-overlay');
+
+            fileInput?.addEventListener('change', (e) => {
+                const file = e.target.files?.[0];
+                if (file) handleGLBFile(file);
+                e.target.value = '';
+            });
+
+            if (dropZone && dragOverlay) {
+                ['dragenter', 'dragover'].forEach(evt => {
+                    dropZone.addEventListener(evt, (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        dragOverlay.classList.remove('hidden');
+                    });
+                });
+
+                ['dragleave', 'drop'].forEach(evt => {
+                    dropZone.addEventListener(evt, (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        dragOverlay.classList.add('hidden');
+                    });
+                });
+
+                dropZone.addEventListener('drop', (e) => {
+                    const file = e.dataTransfer?.files?.[0];
+                    if (file) handleGLBFile(file);
+                });
+            }
+        }
+
+        // --- 4. CAMERA PRESET TWEENING & UI CONTROLS ---
+        function tweenCameraTo(presetKey) {
+            const preset = CAM_PRESETS[presetKey];
+            if (!preset || !camera || !controls) return;
+            targetZoomDist = null;
+            activeCamTween = {
+                startPos: camera.position.clone(),
+                endPos: preset.pos.clone(),
+                startTarget: controls.target.clone(),
+                endTarget: preset.target.clone(),
+                startTime: performance.now(),
+                duration: 650
+            };
+
+            document.querySelectorAll('.cam-btn').forEach(btn => {
+                const active = btn.dataset.cam === presetKey;
+                btn.className = active
+                    ? 'cam-btn bg-jetblack text-white font-mono text-[10px] sm:text-xs font-bold uppercase px-2.5 py-1.5 rounded border border-jetblack hover:bg-f1red transition-colors'
+                    : 'cam-btn bg-white/95 text-jetblack font-mono text-[10px] sm:text-xs font-bold uppercase px-2.5 py-1.5 rounded border border-jetblack hover:bg-f1red hover:text-white transition-colors';
+            });
+        }
+
+        function initViewportControls() {
+            document.querySelectorAll('.cam-btn').forEach(btn => {
+                btn.addEventListener('click', () => tweenCameraTo(btn.dataset.cam));
+            });
+
+            const toggleBtn = document.getElementById('btn-toggle-rotate');
+            const indicator = document.getElementById('rotate-indicator');
+            toggleBtn?.addEventListener('click', () => {
+                autoRotate = !autoRotate;
+                if (controls) controls.autoRotate = autoRotate;
+                const labelSpan = toggleBtn.querySelector('span:last-child');
+                if (labelSpan) labelSpan.innerText = autoRotate ? 'Turntable: ON' : 'Turntable: OFF';
+                if (indicator) {
+                    indicator.classList.toggle('bg-f1red', autoRotate);
+                    indicator.classList.toggle('bg-neutral-400', !autoRotate);
+                }
+            });
+        }
+
+        // Global Livery Hook for Constructor Cards
+        window.apply3DLivery = function(primaryHex, secondaryHex, teamName) {
+            const swatch = document.getElementById('hud-livery-swatch');
+            const nameEl = document.getElementById('hud-livery-name');
+            if (swatch) swatch.style.backgroundColor = primaryHex;
+            if (nameEl) nameEl.innerText = `LIVERY: ${teamName.toUpperCase()}`;
+
+            const pColor = new THREE.Color(primaryHex);
+            const sColor = new THREE.Color(secondaryHex);
+            proceduralBodyMeshes.forEach(m => m.material?.color?.copy(pColor));
+            proceduralAccentMeshes.forEach(m => m.material?.color?.copy(sColor));
+        };
+
+        // --- 5. ANIMATION LOOP ---
+        function animate() {
+            requestAnimationFrame(animate);
+            if (activeCamTween) {
+                const t = Math.min((performance.now() - activeCamTween.startTime) / activeCamTween.duration, 1);
+                const ease = 1 - Math.pow(1 - t, 3);
+                camera.position.lerpVectors(activeCamTween.startPos, activeCamTween.endPos, ease);
+                controls.target.lerpVectors(activeCamTween.startTarget, activeCamTween.endTarget, ease);
+                if (t >= 1) activeCamTween = null;
+            }
+            controls.update();
+
+            // Apply buttery-smooth interpolated zoom distance
+            if (targetZoomDist !== null && !activeCamTween) {
+                const offset = camera.position.clone().sub(controls.target);
+                const currentDist = offset.length();
+                const nextDist = THREE.MathUtils.lerp(currentDist, targetZoomDist, 0.08);
+                offset.setLength(nextDist);
+                camera.position.copy(controls.target).add(offset);
+                if (Math.abs(nextDist - targetZoomDist) < 0.002) {
+                    targetZoomDist = null;
+                }
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        window.addEventListener('load', initStudio);
+    </script>
+
+    <!-- ========================================================================= -->
+    <!-- SELECTED TEAMS CONSTRUCTOR CARDS, PPT CHECKLIST & REGISTRATION LOGIC      -->
+    <!-- ========================================================================= -->
+    <script>
+        // --- 0. TOAST NOTIFICATION ---
+        let toastTimeout = null;
+        window.showF1Toast = function(message) {
+            const toast = document.getElementById('f1-toast');
+            const msgEl = document.getElementById('f1-toast-msg');
+            if (!toast || !msgEl) return;
+            msgEl.innerText = message;
+            toast.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-4');
+            toast.classList.add('opacity-100', 'translate-y-0');
+            clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => {
+                toast.classList.add('opacity-0', 'pointer-events-none', 'translate-y-4');
+                toast.classList.remove('opacity-100', 'translate-y-0');
+            }, 3500);
+        };
+
+        // --- 1. F1 CONSTRUCTOR LIVERY PRESETS (INSPIRED BY OFFICIAL F1 TEAMS) ---
+        const LIVERY_PRESETS = {
+            mercedes: {
+                id: 'mercedes',
+                label: 'Silver Emerald',
+                gradient: 'linear-gradient(105deg, #007A68 0%, #00A19B 45%, #2DF5D4 100%)',
+                carPrimary: '#1A1D21',
+                carSecondary: '#00D2BE',
+                carAccent: '#E2E8F0',
+                tireColor: '#EF4444',
+                textDark: false
+            },
+            ferrari: {
+                id: 'ferrari',
+                label: 'Scuderia Red',
+                gradient: 'linear-gradient(105deg, #6E0410 0%, #B80015 48%, #E10600 100%)',
+                carPrimary: '#DC0000',
+                carSecondary: '#141414',
+                carAccent: '#FACC15',
+                tireColor: '#FACC15',
+                textDark: false
+            },
+            redbull: {
+                id: 'redbull',
+                label: 'Oracle Navy',
+                gradient: 'linear-gradient(105deg, #0A1D42 0%, #154087 50%, #3671C6 100%)',
+                carPrimary: '#121E3D',
+                carSecondary: '#E10600',
+                carAccent: '#FACC15',
+                tireColor: '#EF4444',
+                textDark: false
+            },
+            mclaren: {
+                id: 'mclaren',
+                label: 'Papaya Spark',
+                gradient: 'linear-gradient(105deg, #9C4600 0%, #D96B00 48%, #FF8700 100%)',
+                carPrimary: '#FF8000',
+                carSecondary: '#141619',
+                carAccent: '#38BDF8',
+                tireColor: '#FACC15',
+                textDark: false
+            },
+            racingbulls: {
+                id: 'racingbulls',
+                label: 'Electric Blue',
+                gradient: 'linear-gradient(105deg, #162E8A 0%, #2B56E0 52%, #638BFF 100%)',
+                carPrimary: '#F8FAFC',
+                carSecondary: '#1D4ED8',
+                carAccent: '#EF4444',
+                tireColor: '#FFFFFF',
+                textDark: false
+            },
+            alpine: {
+                id: 'alpine',
+                label: 'Alpine Cyan',
+                gradient: 'linear-gradient(105deg, #004E7C 0%, #0082C8 50%, #00A8E8 100%)',
+                carPrimary: '#0090FF',
+                carSecondary: '#FF66B2',
+                carAccent: '#111827',
+                tireColor: '#EF4444',
+                textDark: false
+            },
+            haas: {
+                id: 'haas',
+                label: 'Titanium Silver',
+                gradient: 'linear-gradient(105deg, #4B5159 0%, #808791 52%, #C8CDD4 100%)',
+                carPrimary: '#F1F5F9',
+                carSecondary: '#18181B',
+                carAccent: '#E10600',
+                tireColor: '#FFFFFF',
+                textDark: false
+            },
+            audi: {
+                id: 'audi',
+                label: 'Audi Vermilion',
+                gradient: 'linear-gradient(105deg, #7A1400 0%, #C82300 48%, #FF3B0A 100%)',
+                carPrimary: '#D4D4D8',
+                carSecondary: '#EF4444',
+                carAccent: '#18181B',
+                tireColor: '#EF4444',
+                textDark: false
+            }
+        };
+
+        // --- 2. INITIAL 8 SELECTED TEAMS (PRE-SEEDED BMSIT SHORTLIST) ---
+        const INITIAL_TEAMS = [
+            {
+                id: 'GGP-2026-001',
+                name: 'Apex Telemetry',
+                track: 'AI & Autonomy',
+                liveryId: 'mercedes',
+                college: 'BMSIT & M, Bengaluru',
+                members: ['Aarav Sharma', 'Diya Nair', 'Kabir Menon']
+            },
+            {
+                id: 'GGP-2026-002',
+                name: 'Scuderia Node',
+                track: 'FinTech Telemetry',
+                liveryId: 'ferrari',
+                college: 'BMSIT & M, Bengaluru',
+                members: ['Rohan Kulkarni', 'Ananya Rao', 'Vikram Joshi']
+            },
+            {
+                id: 'GGP-2026-003',
+                name: 'Velocity Dynamics',
+                track: 'AI & Autonomy',
+                liveryId: 'redbull',
+                college: 'BMSIT & M, Bengaluru',
+                members: ['Siddharth Verma', 'Meera Iyer', 'Pranav Gowda']
+            },
+            {
+                id: 'GGP-2026-004',
+                name: 'Papaya Protocol',
+                track: 'Web3 & Security',
+                liveryId: 'mclaren',
+                college: 'RVCE, Bengaluru',
+                members: ['Nikhil Reddy', 'Sneha Patel', 'Arjun Desai']
+            },
+            {
+                id: 'GGP-2026-005',
+                name: 'AeroGrid Labs',
+                track: 'Sustainable Mobility',
+                liveryId: 'racingbulls',
+                college: 'BMSIT & M, Bengaluru',
+                members: ['Karthik Bhat', 'Tanvi Hegde', 'Devansh Shah']
+            },
+            {
+                id: 'GGP-2026-006',
+                name: 'Slipstream AI',
+                track: 'AI & Autonomy',
+                liveryId: 'alpine',
+                college: 'PES University',
+                members: ['Ishaan Kapoor', 'Riya Das', 'Yashwanth Kumar']
+            },
+            {
+                id: 'GGP-2026-007',
+                name: 'Carbon Ledger',
+                track: 'Web3 & Security',
+                liveryId: 'haas',
+                college: 'BMSIT & M, Bengaluru',
+                members: ['Varun Shetty', 'Aditi Kulkarni', 'Harshil Jain']
+            },
+            {
+                id: 'GGP-2026-008',
+                name: 'Zero-G Mobility',
+                track: 'Sustainable Mobility',
+                liveryId: 'audi',
+                college: 'MSRIT, Bengaluru',
+                members: ['Shreya Menon', 'Akash Tiwari', 'Nandan Raj']
+            }
+        ];
+
+        // In-Memory State (No localStorage)
+        let selectedTeams = INITIAL_TEAMS.map(t => ({ ...t, members: [...t.members] }));
+        let activeTrackFilter = 'ALL';
+        let activeViewMode = 'cards'; // 'cards' | 'tower'
+        let currentModalTeam = null;
+
+        // --- 3. SLEEK SIDE-PROFILE F1 CAR SVG GENERATOR ---
+        function generateF1CarSVG(livery, teamCode = 'GP') {
+            return `
+            <svg viewBox="0 0 460 112" class="f1-svg-car w-full h-auto drop-shadow-[0_12px_10px_rgba(0,0,0,0.45)]" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <!-- Ground Contact Shadow -->
+                <ellipse cx="230" cy="100" rx="205" ry="7" fill="rgba(0,0,0,0.38)"/>
+
+                <!-- Rear Wing Assembly -->
+                <path d="M22 30 L56 30 L64 68 L30 68 Z" fill="#141418"/>
+                <path d="M20 26 L56 26 L54 34 L22 34 Z" fill="${livery.carSecondary}"/>
+                <path d="M24 38 L58 38 L56 44 L26 44 Z" fill="${livery.carPrimary}"/>
+                <rect x="44" y="44" width="6" height="24" fill="#18181B"/>
+
+                <!-- Carbon Underfloor & Diffuser -->
+                <path d="M52 84 L388 86 L402 80 L382 77 L110 75 L54 74 Z" fill="#121216"/>
+                <path d="M120 79 L345 81" stroke="${livery.carAccent}" stroke-width="2" stroke-opacity="0.7"/>
+
+                <!-- Engine Cover & Shark Fin -->
+                <path d="M62 66 L142 30 L214 34 L250 48 L398 70 L398 78 L62 78 Z" fill="${livery.carPrimary}"/>
+                <path d="M64 46 L142 30 L146 42 L68 56 Z" fill="${livery.carSecondary}"/>
+
+                <!-- Sculpted Sidepod & Aero Livery Stripe -->
+                <path d="M124 62 C158 50 220 48 278 58 L266 76 L112 75 Z" fill="${livery.carSecondary}"/>
+                <path d="M138 66 C180 58 232 58 286 67 L282 73 L132 72 Z" fill="${livery.carAccent}" fill-opacity="0.9"/>
+
+                <!-- Minimal Team Code Graphic on Sidepod -->
+                <text x="172" y="69" fill="#FFFFFF" font-family="Unbounded, sans-serif" font-size="9" font-weight="900" letter-spacing="1" opacity="0.9">${teamCode}</text>
+
+                <!-- Airbox Intake & Driver Helmet + Halo -->
+                <path d="M168 32 L198 33 L204 44 L164 44 Z" fill="#141418"/>
+                <circle cx="222" cy="43" r="8" fill="${livery.carAccent}"/>
+                <path d="M224 40 L230 41 L229 45 L223 44 Z" fill="#111111"/>
+                <!-- Halo Structure -->
+                <path d="M206 46 C220 34 242 36 258 50" stroke="#18181B" stroke-width="4.5" stroke-linecap="round"/>
+
+                <!-- Sleek Nose Cone & Front Wing -->
+                <path d="M254 50 L414 74 L414 81 L368 81 L254 64 Z" fill="${livery.carPrimary}"/>
+                <path d="M312 59 L410 74 L406 78 L308 64 Z" fill="${livery.carSecondary}"/>
+                <!-- Front Wing Multi-Element -->
+                <path d="M388 78 L442 75 L446 84 L388 86 Z" fill="${livery.carSecondary}"/>
+                <path d="M396 81 L444 79 L445 84 L396 85 Z" fill="${livery.carAccent}"/>
+                <!-- Front Wing Endplate -->
+                <path d="M418 70 L444 74 L445 85 L418 85 Z" fill="#141418" fill-opacity="0.85"/>
+
+                <!-- Glossy Specular Chassis Highlight -->
+                <path d="M144 33 L210 36 L252 50 L398 72" stroke="#FFFFFF" stroke-width="1.4" stroke-opacity="0.45" stroke-linecap="round"/>
+
+                <!-- Rear 18-inch Wheel -->
+                <g transform="translate(96, 72)">
+                    <circle r="27" fill="#16161A"/>
+                    <circle r="24" fill="none" stroke="#2A2A32" stroke-width="2"/>
+                    <circle r="19" fill="none" stroke="${livery.tireColor}" stroke-width="2.6" stroke-dasharray="28 6"/>
+                    <circle r="14" fill="#222228"/>
+                    <circle r="10" fill="#111114" stroke="#4B5563" stroke-width="1.5"/>
+                    <circle r="3.5" fill="${livery.carAccent}"/>
+                </g>
+
+                <!-- Front 18-inch Wheel -->
+                <g transform="translate(362, 72)">
+                    <circle r="26" fill="#16161A"/>
+                    <circle r="23" fill="none" stroke="#2A2A32" stroke-width="2"/>
+                    <circle r="18" fill="none" stroke="${livery.tireColor}" stroke-width="2.6" stroke-dasharray="26 6"/>
+                    <circle r="13.5" fill="#222228"/>
+                    <circle r="9.5" fill="#111114" stroke="#4B5563" stroke-width="1.5"/>
+                    <circle r="3.5" fill="${livery.carAccent}"/>
+                </g>
+            </svg>`;
+        }
+
+        // Helper: Format Driver Name (First Normal + LAST BOLD UPPERCASE like F1)
+        function formatDriverNameHTML(fullName) {
+            const parts = fullName.trim().split(/\s+/);
+            const initials = parts.map(p => p[0]).join('').slice(0, 2).toUpperCase();
+            if (parts.length === 1) {
+                return `
+                    <span class="inline-flex items-center gap-1.5 bg-black/25 backdrop-blur-sm border border-white/15 rounded-full pl-1 pr-2.5 py-0.5 text-[11px] sm:text-xs text-white">
+                        <span class="w-4 h-4 rounded-full bg-white/20 flex items-center justify-center font-mono text-[9px] font-bold">${initials}</span>
+                        <strong class="uppercase tracking-wide">${parts[0]}</strong>
+                    </span>`;
+            }
+            const first = parts.slice(0, -1).join(' ');
+            const last = parts[parts.length - 1];
+            return `
+                <span class="inline-flex items-center gap-1.5 bg-black/25 backdrop-blur-sm border border-white/15 rounded-full pl-1 pr-2.5 py-0.5 text-[11px] sm:text-xs text-white">
+                    <span class="w-4 h-4 rounded-full bg-white/20 flex items-center justify-center font-mono text-[9px] font-bold">${initials}</span>
+                    <span class="opacity-90">${first}</span>
+                    <strong class="uppercase tracking-wide">${last}</strong>
+                </span>`;
+        }
+
+        // Helper: Create 3-letter team code
+        function getTeamCode(name) {
+            return name.replace(/[^A-Za-z]/g, '').slice(0, 3).toUpperCase() || 'GPX';
+        }
+
+        // --- 4. RENDER SELECTED TEAMS (CONSTRUCTOR CARDS & TIMING TOWER) ---
+        function renderSelectedTeams() {
+            const gridEl = document.getElementById('constructor-cards-grid');
+            const towerBody = document.getElementById('timing-tower-body');
+            const slotBadge = document.getElementById('grid-slot-badge');
+            const navCount = document.getElementById('nav-grid-count');
+
+            const countStr = String(selectedTeams.length).padStart(2, '0');
+            if (slotBadge) slotBadge.innerText = `${countStr} / 15`;
+            if (navCount) navCount.innerText = `${countStr}/15`;
+
+            const filtered = activeTrackFilter === 'ALL'
+                ? selectedTeams
+                : selectedTeams.filter(t => t.track === activeTrackFilter);
+
+            // Render Constructor Cards Grid
+            if (gridEl) {
+                let cardsHTML = filtered.map((team) => {
+                    const globalIdx = selectedTeams.indexOf(team);
+                    const posLabel = `P${String(globalIdx + 1).padStart(2, '0')}`;
+                    const livery = LIVERY_PRESETS[team.liveryId] || LIVERY_PRESETS.ferrari;
+                    const code = getTeamCode(team.name);
+
+                    return `
+                    <article data-team-id="${team.id}"
+                             class="constructor-card group relative rounded-2xl overflow-hidden cursor-pointer border border-white/15 select-none"
+                             style="background: ${livery.gradient};">
+                        <!-- Halftone Speed Dot Overlay -->
+                        <div class="f1-card-dots absolute inset-0 pointer-events-none"></div>
+
+                        <!-- Card Content -->
+                        <div class="relative z-10 p-5 sm:p-6 flex flex-col justify-between min-h-[215px] sm:min-h-[235px]">
+                            <!-- Top Row: Team Name + Drivers + Emblem Badge -->
+                            <div class="flex items-start justify-between gap-3">
+                                <div class="min-w-0">
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <span class="font-mono text-[10px] font-bold uppercase tracking-widest bg-black/30 text-white px-2 py-0.5 rounded">
+                                            ${team.track}
+                                        </span>
+                                    </div>
+                                    <h3 class="font-display font-black text-xl sm:text-2xl text-white tracking-tight leading-tight truncate">
+                                        ${team.name}
+                                    </h3>
+                                    <!-- 3 Pit Crew Members -->
+                                    <div class="flex flex-wrap items-center gap-1.5 mt-2.5">
+                                        ${team.members.map(m => formatDriverNameHTML(m)).join('')}
+                                    </div>
+                                </div>
+
+                                <!-- Top-Right Circular Constructor Emblem / Grid Position -->
+                                <div class="shrink-0 w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-black/30 backdrop-blur-sm border border-white/25 flex flex-col items-center justify-center text-white">
+                                    <span class="font-display font-black text-xs sm:text-sm leading-none">${posLabel}</span>
+                                    <span class="font-mono text-[8px] opacity-80 uppercase mt-0.5">${code}</span>
+                                </div>
+                            </div>
+
+                            <!-- Bottom Row: Side-Profile F1 Car SVG -->
+                            <div class="mt-4 -mx-1 sm:mx-0">
+                                ${generateF1CarSVG(livery, code)}
+                            </div>
+                        </div>
+
+                        <!-- Subtle Bottom-Right Hover Prompt -->
+                        <div class="absolute bottom-2.5 right-3 z-20 opacity-0 group-hover:opacity-100 transition-opacity font-mono text-[10px] uppercase bg-black/60 backdrop-blur text-white px-2.5 py-1 rounded-full border border-white/20">
+                            Inspect Pass &amp; 3D Livery →
+                        </div>
+                    </article>`;
+                }).join('');
+
+                // Add Open Grid Slot Card if under 15 teams and showing ALL
+                if (activeTrackFilter === 'ALL' && selectedTeams.length < 15) {
+                    const nextPos = `P${String(selectedTeams.length + 1).padStart(2, '0')}`;
+                    const remaining = 15 - selectedTeams.length;
+                    cardsHTML += `
+                    <a href="#register-section"
+                       class="rounded-2xl border-2 border-dashed border-white/25 hover:border-f1red bg-white/[0.03] hover:bg-white/[0.06] p-6 flex flex-col items-center justify-center text-center min-h-[215px] sm:min-h-[235px] transition-colors group">
+                        <div class="w-12 h-12 rounded-full bg-white/10 group-hover:bg-f1red text-white flex items-center justify-center font-display font-black text-sm mb-3 transition-colors">
+                            ${nextPos}
+                        </div>
+                        <div class="font-display font-bold text-lg uppercase text-white">OPEN STARTING GRID SLOT</div>
+                        <div class="font-mono text-xs text-white/60 mt-1 uppercase">${remaining} SLOT${remaining > 1 ? 'S' : ''} REMAINING // SUBMIT PPT &amp; CLAIM YOUR CAR</div>
+                    </a>`;
+                }
+
+                if (filtered.length === 0) {
+                    cardsHTML = `
+                    <div class="col-span-full bg-white/5 border border-white/15 rounded-2xl p-10 text-center">
+                        <div class="font-display font-bold text-lg uppercase text-white">No Teams Qualified in This Track Yet</div>
+                        <p class="font-mono text-xs text-white/60 mt-2">Be the first constructor to claim a slot in ${activeTrackFilter}.</p>
+                    </div>`;
+                }
+
+                gridEl.innerHTML = cardsHTML;
+
+                // Attach Click Listeners to Constructor Cards
+                gridEl.querySelectorAll('article[data-team-id]').forEach(card => {
+                    card.addEventListener('click', () => {
+                        const team = selectedTeams.find(t => t.id === card.dataset.teamId);
+                        if (team) openPaddockPassModal(team);
+                    });
+                });
+            }
+
+            // Render Compact Timing Tower View
+            if (towerBody) {
+                towerBody.innerHTML = filtered.map((team) => {
+                    const globalIdx = selectedTeams.indexOf(team);
+                    const posLabel = `P${String(globalIdx + 1).padStart(2, '0')}`;
+                    const livery = LIVERY_PRESETS[team.liveryId] || LIVERY_PRESETS.ferrari;
+                    return `
+                    <tr class="hover:bg-white/5 transition-colors">
+                        <td class="py-3.5 px-4 font-display font-black text-white">${posLabel}</td>
+                        <td class="py-3.5 px-4">
+                            <div class="flex items-center gap-2.5">
+                                <span class="w-1.5 h-6 rounded-full" style="background:${livery.carSecondary}"></span>
+                                <div>
+                                    <div class="font-display font-bold text-white uppercase text-xs sm:text-sm">${team.name}</div>
+                                    <div class="font-mono text-[10px] text-white/50">${team.college}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="py-3.5 px-4 text-xs text-white/80 font-body">${team.members.join(' • ')}</td>
+                        <td class="py-3.5 px-4">
+                            <span class="font-mono text-[10px] uppercase bg-white/10 text-white px-2 py-1 rounded">${team.track}</span>
+                        </td>
+                        <td class="py-3.5 px-4 text-right">
+                            <button data-pass-id="${team.id}" class="btn-open-pass bg-f1red hover:bg-red-700 text-white font-mono text-[10px] font-bold uppercase px-3 py-1.5 rounded">
+                                Pass
+                            </button>
+                        </td>
+                    </tr>`;
+                }).join('');
+
+                towerBody.querySelectorAll('.btn-open-pass').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const team = selectedTeams.find(t => t.id === btn.dataset.passId);
+                        if (team) openPaddockPassModal(team);
+                    });
+                });
+            }
+        }
+
+        // --- 5. PADDOCK PASS MODAL LOGIC ---
+        function openPaddockPassModal(team) {
+            currentModalTeam = team;
+            const modal = document.getElementById('paddock-modal');
+            const banner = document.getElementById('pass-header-banner');
+            const livery = LIVERY_PRESETS[team.liveryId] || LIVERY_PRESETS.ferrari;
+            const posIndex = selectedTeams.indexOf(team) + 1;
+            const posLabel = `P${String(posIndex).padStart(2, '0')}`;
+
+            banner.style.background = livery.gradient;
+            document.getElementById('pass-team-name').innerText = team.name;
+            document.getElementById('pass-track').innerText = team.track;
+            document.getElementById('pass-grid-pos').innerText = posLabel;
+            document.getElementById('pass-id').innerText = team.id;
+            document.getElementById('pass-college').innerText = team.college;
+            document.getElementById('pass-car-preview').innerHTML = generateF1CarSVG(livery, getTeamCode(team.name));
+
+            document.getElementById('pass-crew-list').innerHTML = team.members.map((m, idx) => `
+                <div class="bg-offwhite border border-jetblack/20 rounded-lg p-2">
+                    <div class="font-mono text-[9px] text-f1red font-bold uppercase">DRIVER 0${idx + 1}</div>
+                    <div class="font-body font-bold text-xs text-jetblack truncate">${m}</div>
+                </div>
+            `).join('');
+
+            modal.classList.remove('hidden');
+        }
+
+        function initModalControls() {
+            const modal = document.getElementById('paddock-modal');
+            document.getElementById('btn-close-modal')?.addEventListener('click', () => {
+                modal.classList.add('hidden');
+            });
+            modal?.addEventListener('click', (e) => {
+                if (e.target === modal) modal.classList.add('hidden');
+            });
+            document.getElementById('btn-print-pass')?.addEventListener('click', () => {
+                window.print();
+            });
+            document.getElementById('btn-load-pass-livery')?.addEventListener('click', () => {
+                if (!currentModalTeam) return;
+                const livery = LIVERY_PRESETS[currentModalTeam.liveryId] || LIVERY_PRESETS.ferrari;
+                if (window.apply3DLivery) {
+                    window.apply3DLivery(livery.carPrimary, livery.carSecondary, currentModalTeam.name);
+                }
+                modal.classList.add('hidden');
+                document.getElementById('viewport-section')?.scrollIntoView({ behavior: 'smooth' });
+                window.showF1Toast(`3D GARAGE UPDATED TO ${currentModalTeam.name.toUpperCase()} LIVERY!`);
+            });
+        }
+
+        // --- 6. LIVERY PICKER & REGISTRATION FORM ---
+        function initLiveryPicker() {
+            const container = document.getElementById('livery-picker-grid');
+            const hiddenInput = document.getElementById('input-livery-id');
+            if (!container || !hiddenInput) return;
+
+            container.innerHTML = Object.values(LIVERY_PRESETS).map((liv, idx) => `
+                <button type="button" data-livery="${liv.id}"
+                        class="livery-opt relative rounded-lg p-2.5 text-left border-2 transition-all cursor-pointer ${liv.id === 'ferrari' ? 'border-jetblack ring-2 ring-f1red' : 'border-transparent hover:border-jetblack/40'}"
+                        style="background: ${liv.gradient};">
+                    <div class="font-mono text-[10px] font-bold uppercase text-white drop-shadow">${liv.label}</div>
+                    <div class="flex items-center gap-1 mt-1.5">
+                        <span class="w-3 h-3 rounded-full border border-white/50" style="background:${liv.carPrimary}"></span>
+                        <span class="w-3 h-3 rounded-full border border-white/50" style="background:${liv.carSecondary}"></span>
+                    </div>
+                </button>
+            `).join('');
+
+            container.querySelectorAll('.livery-opt').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    container.querySelectorAll('.livery-opt').forEach(b => {
+                        b.classList.remove('border-jetblack', 'ring-2', 'ring-f1red');
+                        b.classList.add('border-transparent');
+                    });
+                    btn.classList.remove('border-transparent');
+                    btn.classList.add('border-jetblack', 'ring-2', 'ring-f1red');
+                    hiddenInput.value = btn.dataset.livery;
+                });
+            });
+        }
+
+        function initRegistrationForm() {
+            const form = document.getElementById('team-register-form');
+            if (!form) return;
+
+            form.addEventListener('submit', (e) => {
+                e.preventDefault();
+                if (selectedTeams.length >= 15) {
+                    window.showF1Toast('STARTING GRID FULL! ALL 15 CONSTRUCTOR SLOTS ARE CLAIMED.');
+                    return;
+                }
+
+                const name = document.getElementById('input-team-name').value.trim();
+                const track = document.getElementById('input-track').value;
+                const liveryId = document.getElementById('input-livery-id').value;
+                const m1 = document.getElementById('input-m1').value.trim();
+                const m2 = document.getElementById('input-m2').value.trim();
+                const m3 = document.getElementById('input-m3').value.trim();
+                const college = document.getElementById('input-college').value.trim();
+
+                if (!name || !m1 || !m2 || !m3) {
+                    window.showF1Toast('ALL 3 PIT CREW MEMBERS & TEAM NAME ARE REQUIRED.');
+                    return;
+                }
+
+                const newTeam = {
+                    id: `GGP-2026-${String(selectedTeams.length + 1).padStart(3, '0')}`,
+                    name,
+                    track,
+                    liveryId,
+                    college,
+                    members: [m1, m2, m3]
+                };
+
+                selectedTeams.push(newTeam);
+                activeTrackFilter = 'ALL';
+                syncFilterPills();
+                renderSelectedTeams();
+                form.reset();
+                openPaddockPassModal(newTeam);
+                window.showF1Toast(`${name.toUpperCase()} QUALIFIED FOR GRID SLOT P${String(selectedTeams.length).padStart(2, '0')}!`);
+            });
+        }
+
+        // --- 7. FILTER PILLS, VIEW SWITCHER & INLINE RESET ---
+        function syncFilterPills() {
+            document.querySelectorAll('.filter-pill').forEach(pill => {
+                const isActive = pill.dataset.filter === activeTrackFilter;
+                pill.className = isActive
+                    ? 'filter-pill bg-white text-jetblack font-mono text-xs font-bold uppercase px-3.5 py-1.5 rounded-full transition-colors'
+                    : 'filter-pill bg-white/10 hover:bg-white/20 text-white font-mono text-xs font-bold uppercase px-3.5 py-1.5 rounded-full transition-colors';
+            });
+        }
+
+        function initSelectedTeamsControls() {
+            // Track filters
+            document.querySelectorAll('.filter-pill').forEach(pill => {
+                pill.addEventListener('click', () => {
+                    activeTrackFilter = pill.dataset.filter;
+                    syncFilterPills();
+                    renderSelectedTeams();
+                });
+            });
+
+            // View toggle (Constructor Cards vs Timing Tower)
+            const cardsBtn = document.getElementById('view-cards-btn');
+            const towerBtn = document.getElementById('view-tower-btn');
+            const cardsGrid = document.getElementById('constructor-cards-grid');
+            const towerView = document.getElementById('timing-tower-view');
+
+            cardsBtn?.addEventListener('click', () => {
+                activeViewMode = 'cards';
+                cardsBtn.className = 'px-3.5 py-2 rounded-md font-mono text-xs font-bold uppercase bg-f1red text-white transition-colors';
+                towerBtn.className = 'px-3.5 py-2 rounded-md font-mono text-xs font-bold uppercase text-white/70 hover:text-white transition-colors';
+                cardsGrid.classList.remove('hidden');
+                towerView.classList.add('hidden');
+            });
+
+            towerBtn?.addEventListener('click', () => {
+                activeViewMode = 'tower';
+                towerBtn.className = 'px-3.5 py-2 rounded-md font-mono text-xs font-bold uppercase bg-f1red text-white transition-colors';
+                cardsBtn.className = 'px-3.5 py-2 rounded-md font-mono text-xs font-bold uppercase text-white/70 hover:text-white transition-colors';
+                towerView.classList.remove('hidden');
+                cardsGrid.classList.add('hidden');
+            });
+
+            // Inline 2-click Reset Confirmation
+            const resetBtn = document.getElementById('btn-reset-teams');
+            let resetArmed = false;
+            let resetTimer = null;
+
+            resetBtn?.addEventListener('click', () => {
+                if (!resetArmed) {
+                    resetArmed = true;
+                    resetBtn.innerText = '[Click Again to Confirm Reset]';
+                    resetBtn.classList.add('text-f1red');
+                    resetTimer = setTimeout(() => {
+                        resetArmed = false;
+                        resetBtn.innerText = '[Reset Sample Grid]';
+                        resetBtn.classList.remove('text-f1red');
+                    }, 4000);
+                } else {
+                    clearTimeout(resetTimer);
+                    resetArmed = false;
+                    resetBtn.innerText = '[Reset Sample Grid]';
+                    resetBtn.classList.remove('text-f1red');
+                    selectedTeams = INITIAL_TEAMS.map(t => ({ ...t, members: [...t.members] }));
+                    activeTrackFilter = 'ALL';
+                    syncFilterPills();
+                    renderSelectedTeams();
+                    window.showF1Toast('SELECTED TEAMS RESET TO INITIAL 8 CONSTRUCTORS.');
+                }
+            });
+        }
+
+        // --- 8. INTERACTIVE 8-SLIDE PPT CHECKLIST ---
+        const PPT_SLIDES = [
+            '01. Title, Team Name & Track',
+            '02. Problem Statement & Impact',
+            '03. Proposed Solution & USP',
+            '04. System Architecture Diagram',
+            '05. Tech Stack & APIs Used',
+            '06. UI Wireframes / Prototype',
+            '07. Scalability & Feasibility',
+            '08. 24-Hour Build Roadmap'
+        ];
+
+        function initPPTChecklist() {
+            const container = document.getElementById('ppt-checklist');
+            if (!container) return;
+
+            container.innerHTML = PPT_SLIDES.map((slide, idx) => `
+                <label class="flex items-center gap-3 bg-white border border-jetblack rounded-lg p-3 cursor-pointer hover:border-f1red transition-colors select-none">
+                    <input type="checkbox" class="ppt-check w-4 h-4 accent-f1red rounded" ${idx < 3 ? 'checked' : ''}>
+                    <span class="font-mono text-xs font-semibold text-jetblack">${slide}</span>
+                </label>
+            `).join('');
+
+            const updateProgress = () => {
+                const checks = container.querySelectorAll('.ppt-check');
+                const checked = container.querySelectorAll('.ppt-check:checked').length;
+                const pct = Math.round((checked / checks.length) * 100);
+                document.getElementById('ppt-percent').innerText = `${pct}%`;
+                document.getElementById('ppt-progress-bar').style.width = `${pct}%`;
+            };
+
+            container.querySelectorAll('.ppt-check').forEach(cb => cb.addEventListener('change', updateProgress));
+            updateProgress();
+        }
+
+        // --- 9. LIVE TRACK CLOCK ---
+        function initLiveClock() {
+            const clockEl = document.getElementById('live-track-clock');
+            if (!clockEl) return;
+            const tick = () => {
+                const now = new Date();
+                clockEl.innerText = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false });
+            };
+            tick();
+            setInterval(tick, 15000);
+        }
+
+        // Bootstrap App
+        window.addEventListener('DOMContentLoaded', () => {
+            initLiveryPicker();
+            initSelectedTeamsControls();
+            initRegistrationForm();
+            initModalControls();
+            initPPTChecklist();
+            initLiveClock();
+            renderSelectedTeams();
+        });
+    </script>
+</body>
+</html>
