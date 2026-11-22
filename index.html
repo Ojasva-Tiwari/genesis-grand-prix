@@ -132,6 +132,98 @@
 </head>
 <body class="antialiased selection:bg-f1red selection:text-white">
 
+    <!-- 3-SECOND FULL-SCREEN INTRO SCREEN -->
+    <div id="intro-screen" style="position:fixed;inset:0;width:100vw;height:100vh;z-index:99999;background:#000;display:flex;align-items:center;justify-content:center;overflow:hidden;transition:opacity 0.7s cubic-bezier(0.16,1,0.3,1);">
+        <video id="intro-video" style="width:100%;height:100%;object-fit:cover;display:block;border:none;outline:none;" autoplay muted playsinline webkit-playsinline preload="auto">
+            <source src="./assets/f1-flag.mp4" type="video/mp4">
+            <source src="./assets/f1%20flag.mp4" type="video/mp4">
+        </video>
+    </div>
+    <script>
+        (function() {
+            const introScreen = document.getElementById('intro-screen');
+            const introVideo = document.getElementById('intro-video');
+            if (!introScreen || !introVideo) return;
+
+            let introPlayed = false;
+            try {
+                introPlayed = sessionStorage.getItem('f1_intro_played') === 'true';
+            } catch (_) {}
+
+            function revealWebsite(immediate = false) {
+                if (!introScreen) return;
+                try {
+                    sessionStorage.setItem('f1_intro_played', 'true');
+                } catch (_) {}
+                document.body.style.overflow = '';
+
+                if (immediate) {
+                    introScreen.style.display = 'none';
+                    introScreen.remove();
+                    return;
+                }
+
+                const prefersReducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+                introScreen.style.transition = prefersReducedMotion ? 'opacity 0.15s linear' : 'opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1)';
+                introScreen.style.opacity = '0';
+                introScreen.style.pointerEvents = 'none';
+                setTimeout(() => {
+                    introScreen.style.display = 'none';
+                    introScreen.remove();
+                }, prefersReducedMotion ? 200 : 750);
+            }
+
+            if (introPlayed) {
+                revealWebsite(true);
+                return;
+            }
+
+            // Lock scrolling while the full-screen intro is active
+            document.body.style.overflow = 'hidden';
+
+            let finished = false;
+            function finishIntro(immediate = false) {
+                if (finished) return;
+                finished = true;
+                revealWebsite(immediate);
+            }
+
+            // Allow user to click or press Escape/Space to skip (accessibility)
+            introScreen.addEventListener('click', () => finishIntro(false));
+            window.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' || e.key === ' ' || e.key === 'Enter') {
+                    finishIntro(false);
+                }
+            });
+
+            introVideo.addEventListener('playing', () => {
+                console.log('F1 intro video playing, duration:', introVideo.duration);
+            });
+
+            introVideo.addEventListener('ended', () => {
+                console.log('F1 intro video completed playback at:', introVideo.currentTime);
+                finishIntro(false);
+            });
+
+            introVideo.addEventListener('error', (err) => {
+                console.warn('Intro video error, revealing website immediately:', err);
+                revealWebsite(true);
+            });
+
+            // Failsafe timer (video duration is ~3.1s; release after 3.8s if ended event is delayed)
+            setTimeout(() => finishIntro(false), 3800);
+
+            // Trigger autoplay
+            const playPromise = introVideo.play();
+            if (playPromise !== undefined) {
+                playPromise.catch((err) => {
+                    console.warn('Autoplay prevented by browser:', err);
+                    setTimeout(() => finishIntro(false), 500);
+                });
+            }
+        })();
+    </script>
+
     <!-- TOP STICKY F1 TELEMETRY NAVBAR -->
     <header class="sticky top-0 z-40 bg-jetblack text-white border-b border-white/10">
         <!-- Main Nav Row -->
