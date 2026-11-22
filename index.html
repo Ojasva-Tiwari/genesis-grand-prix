@@ -191,31 +191,20 @@
             </div>
 
             <!-- OPEN FLOATING 3D VIEWPORT CONTAINER (NO BOX FRAME) -->
-            <div class="relative w-full h-[360px] sm:h-[460px] lg:h-[540px] bg-transparent" id="drop-zone">
+            <div class="relative w-full h-[360px] sm:h-[460px] lg:h-[540px] bg-transparent">
                 <!-- Three.js Mount -->
                 <div id="three-container" class="w-full h-full cursor-grab active:cursor-grabbing"></div>
 
                 <!-- Top-Left Telemetry HUD -->
                 <div class="absolute top-3 left-3 sm:top-4 sm:left-4 z-10 pointer-events-none flex flex-col gap-1.5">
                     <div class="bg-jetblack/90 backdrop-blur text-white font-mono text-[10px] sm:text-xs px-3 py-1.5 rounded flex items-center gap-2 border border-white/15">
-                        <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                        <span id="hud-status-dot" class="w-2 h-2 rounded-full bg-emerald-400"></span>
                         <span id="hud-model-status">INITIALIZING 3D GARAGE...</span>
                     </div>
                     <div id="hud-livery-badge" class="bg-white/90 backdrop-blur text-jetblack font-mono text-[10px] px-3 py-1 rounded border border-jetblack/20 inline-flex items-center gap-2 w-fit">
-                        <span id="hud-livery-swatch" class="w-2.5 h-2.5 rounded-full bg-f1red"></span>
-                        <span id="hud-livery-name">LIVERY: GENESIS WORKS RED</span>
+                        <span id="hud-livery-swatch" class="w-2.5 h-2.5 rounded-full bg-[#121E3D]"></span>
+                        <span id="hud-livery-name">RED BULL RACING RB16B</span>
                     </div>
-                </div>
-
-                <!-- Top-Right Upload / .GLB Trigger -->
-                <div class="absolute top-3 right-3 sm:top-4 sm:right-4 z-10 flex items-center gap-2">
-                    <label for="glb-file-input" class="cursor-pointer bg-white/95 hover:bg-f1red hover:text-white text-jetblack border border-jetblack font-mono text-[10px] sm:text-xs font-bold uppercase px-3 py-1.5 rounded shadow-sm transition-colors flex items-center gap-1.5">
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
-                        </svg>
-                        <span>Load .GLB</span>
-                    </label>
-                    <input type="file" id="glb-file-input" accept=".glb,.gltf" class="hidden">
                 </div>
 
                 <!-- Bottom Camera Control HUD -->
@@ -230,12 +219,6 @@
                         <span id="rotate-indicator" class="w-2 h-2 rounded-full bg-f1red"></span>
                         <span>Turntable: ON</span>
                     </button>
-                </div>
-
-                <!-- Drag & Drop Overlay -->
-                <div id="drag-overlay" class="hidden absolute inset-0 z-20 bg-f1red/90 text-white rounded-xl flex flex-col items-center justify-center p-6 text-center pointer-events-none">
-                    <div class="font-display font-black text-2xl sm:text-3xl uppercase mb-2">DROP .GLB MODEL HERE</div>
-                    <div class="font-mono text-xs uppercase tracking-widest">Auto-scaling &amp; PBR Studio Lighting Ready</div>
                 </div>
 
                 <!-- Loader Overlay -->
@@ -667,17 +650,17 @@
 
         let scene, camera, renderer, controls;
         let currentModel = null;
-        let proceduralBodyMeshes = [];
-        let proceduralAccentMeshes = [];
         let autoRotate = true;
         let activeCamTween = null;
         let targetZoomDist = null;
 
+        const MODEL_PATH = './assets/2021_redbull_rb16b.glb';
+
         const CAM_PRESETS = {
             hero:  { pos: new THREE.Vector3(4.35, 1.65, 4.25), target: new THREE.Vector3(0, 0.45, 0) },
             front: { pos: new THREE.Vector3(0.0, 1.15, 5.8), target: new THREE.Vector3(0, 0.45, 0) },
-            side:  { pos: new THREE.Vector3(6.4, 1.15, 0.0), target: new THREE.Vector3(0, 0.45, 0) },
-            top:   { pos: new THREE.Vector3(0.01, 7.2, 0.2), target: new THREE.Vector3(0, 0, 0) }
+            side:  { pos: new THREE.Vector3(6.8, 1.15, 0.0), target: new THREE.Vector3(0, 0.45, 0) },
+            top:   { pos: new THREE.Vector3(0.01, 8.8, 0.01), target: new THREE.Vector3(0, 0, 0) }
         };
 
         function setViewportLoader(visible, statusText = "LOADING MODEL...") {
@@ -761,8 +744,8 @@
             controls.zoomSpeed = 0.35;
             controls.enablePan = false;
             controls.maxPolarAngle = Math.PI / 2 - 0.03;
-            controls.minDistance = 4.8;
-            controls.maxDistance = 9.5;
+            controls.minDistance = 3.6;
+            controls.maxDistance = 11.5;
             controls.target.copy(CAM_PRESETS.hero.target);
             controls.autoRotate = autoRotate;
             controls.autoRotateSpeed = 0.9;
@@ -800,177 +783,49 @@
 
             // Bind Camera Preset & Turntable Controls
             initViewportControls();
-            initGLBUploadAndDrop();
 
-            // Render studio car immediately so there is zero loading hang
-            loadProceduralFallback();
+            // Load Red Bull RB16B Model after Three.js scene & renderer are initialized
+            loadRedBullModel();
 
             // Start Render Loop
             animate();
-
-            // Silently check for a co-hosted f1_car.glb (skips preview sandboxes)
-            tryAutoLoadDefaultGLB();
         }
 
-        async function tryAutoLoadDefaultGLB() {
-            const proto = window.location.protocol;
-            if ((proto !== 'http:' && proto !== 'https:') || window.location.href.includes('srcdoc')) {
-                return;
+        // --- 2. 2021 RED BULL RB16B LOADER ---
+        function handleModelError(error) {
+            console.error("Failed to load Red Bull RB16B GLB from " + MODEL_PATH + ":", error);
+            setViewportLoader(true, "FAILED TO LOAD 3D MODEL");
+            const loaderStatus = document.getElementById('loader-status');
+            if (loaderStatus) {
+                loaderStatus.innerText = "FAILED TO LOAD 3D MODEL (CHECK CONSOLE)";
+                loaderStatus.classList.add('text-f1red');
             }
-            const controller = new AbortController();
-            const timer = setTimeout(() => controller.abort(), 1500);
-            try {
-                const res = await fetch('./f1_car.glb', { method: 'HEAD', signal: controller.signal });
-                clearTimeout(timer);
-                const ctype = (res.headers.get('content-type') || '').toLowerCase();
-                if (res.ok && !ctype.includes('text/html')) {
-                    loadGLBFromURL('./f1_car.glb', 'DEFAULT F1 .GLB LOADED', true);
-                }
-            } catch (_) {
-                clearTimeout(timer);
+            updateHUDStatus("3D MODEL LOAD ERROR");
+            const statusDot = document.getElementById('hud-status-dot');
+            if (statusDot) {
+                statusDot.className = 'w-2 h-2 rounded-full bg-f1red';
+            }
+            if (window.showF1Toast) {
+                window.showF1Toast("FAILED TO LOAD 3D MODEL — CHECK BROWSER CONSOLE");
             }
         }
 
-        // --- 2. PROCEDURAL F1 CAR FALLBACK ---
-        function createProceduralF1Car(primaryHex = 0xE10600, secondaryHex = 0x111111) {
-            proceduralBodyMeshes = [];
-            proceduralAccentMeshes = [];
+        function loadRedBullModel() {
+            setViewportLoader(true, "LOADING RED BULL RB16B...");
+            updateHUDStatus("LOADING 3D CHASSIS...");
 
-            const group = new THREE.Group();
-
-            const bodyMat = new THREE.MeshStandardMaterial({
-                color: primaryHex,
-                metalness: 0.35,
-                roughness: 0.25
-            });
-            const accentMat = new THREE.MeshStandardMaterial({
-                color: secondaryHex,
-                metalness: 0.4,
-                roughness: 0.45
-            });
-            const carbonMat = new THREE.MeshStandardMaterial({
-                color: 0x16161a,
-                metalness: 0.3,
-                roughness: 0.6
-            });
-            const tireMat = new THREE.MeshStandardMaterial({
-                color: 0x18181b,
-                metalness: 0.1,
-                roughness: 0.85
-            });
-            const rimMat = new THREE.MeshStandardMaterial({
-                color: primaryHex,
-                metalness: 0.6,
-                roughness: 0.3
-            });
-
-            const addMesh = (geo, mat, pos, rot = [0, 0, 0], trackAs = null) => {
-                const m = new THREE.Mesh(geo, mat);
-                m.position.set(...pos);
-                m.rotation.set(...rot);
-                m.castShadow = true;
-                m.receiveShadow = true;
-                group.add(m);
-                if (trackAs === 'body') proceduralBodyMeshes.push(m);
-                if (trackAs === 'accent') proceduralAccentMeshes.push(m);
-                return m;
-            };
-
-            // Carbon Floor & Diffuser
-            addMesh(new THREE.BoxGeometry(1.38, 0.06, 3.6), carbonMat, [0, 0.14, 0.05]);
-
-            // Main Monocoque Chassis
-            addMesh(new THREE.BoxGeometry(0.62, 0.34, 2.5), bodyMat, [0, 0.36, 0.1], [0, 0, 0], 'body');
-
-            // Tapered Nose Cone
-            addMesh(new THREE.BoxGeometry(0.42, 0.2, 1.35), bodyMat, [0, 0.28, 1.72], [0.06, 0, 0], 'body');
-
-            // Sculpted Sidepods
-            addMesh(new THREE.BoxGeometry(0.42, 0.28, 1.45), bodyMat, [-0.52, 0.32, -0.05], [0, 0, 0], 'body');
-            addMesh(new THREE.BoxGeometry(0.42, 0.28, 1.45), bodyMat, [0.52, 0.32, -0.05], [0, 0, 0], 'body');
-
-            // Sidepod Livery Stripes
-            addMesh(new THREE.BoxGeometry(0.44, 0.06, 1.2), accentMat, [-0.52, 0.34, -0.05], [0, 0, 0], 'accent');
-            addMesh(new THREE.BoxGeometry(0.44, 0.06, 1.2), accentMat, [0.52, 0.34, -0.05], [0, 0, 0], 'accent');
-
-            // Engine Cover & Airbox
-            addMesh(new THREE.BoxGeometry(0.36, 0.42, 1.15), bodyMat, [0, 0.62, -0.62], [-0.14, 0, 0], 'body');
-            addMesh(new THREE.BoxGeometry(0.16, 0.22, 0.3), carbonMat, [0, 0.78, -0.15]);
-
-            // Cockpit & Halo
-            addMesh(new THREE.BoxGeometry(0.44, 0.12, 0.75), carbonMat, [0, 0.54, 0.35]);
-            const haloGeo = new THREE.TorusGeometry(0.24, 0.032, 10, 24, Math.PI);
-            addMesh(haloGeo, carbonMat, [0, 0.62, 0.42], [0.3, 0, 0]);
-
-            // Front Wing
-            addMesh(new THREE.BoxGeometry(1.78, 0.05, 0.42), accentMat, [0, 0.14, 2.28], [0, 0, 0], 'accent');
-            addMesh(new THREE.BoxGeometry(0.05, 0.2, 0.46), bodyMat, [-0.88, 0.22, 2.28], [0, 0, 0], 'body');
-            addMesh(new THREE.BoxGeometry(0.05, 0.2, 0.46), bodyMat, [0.88, 0.22, 2.28], [0, 0, 0], 'body');
-
-            // Rear Wing Assembly
-            addMesh(new THREE.BoxGeometry(1.12, 0.06, 0.38), bodyMat, [0, 0.88, -1.68], [0.18, 0, 0], 'body');
-            addMesh(new THREE.BoxGeometry(1.12, 0.05, 0.22), accentMat, [0, 0.72, -1.64], [0, 0, 0], 'accent');
-            addMesh(new THREE.BoxGeometry(0.05, 0.62, 0.45), carbonMat, [-0.56, 0.64, -1.66]);
-            addMesh(new THREE.BoxGeometry(0.05, 0.62, 0.45), carbonMat, [0.56, 0.64, -1.66]);
-
-            // 4 F1 Wheels
-            const wheelPositions = [
-                [-0.86, 0.34, 1.38],
-                [0.86, 0.34, 1.38],
-                [-0.88, 0.36, -1.24],
-                [0.88, 0.36, -1.24]
-            ];
-            wheelPositions.forEach(([x, y, z], idx) => {
-                const isRear = idx >= 2;
-                const radius = isRear ? 0.36 : 0.34;
-                const width = isRear ? 0.42 : 0.34;
-
-                const tire = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, width, 28), tireMat);
-                tire.rotation.z = Math.PI / 2;
-                tire.position.set(x, y, z);
-                tire.castShadow = true;
-                group.add(tire);
-
-                const rim = new THREE.Mesh(new THREE.CylinderGeometry(radius * 0.62, radius * 0.62, width + 0.015, 20), rimMat);
-                rim.rotation.z = Math.PI / 2;
-                rim.position.set(x, y, z);
-                group.add(rim);
-                proceduralBodyMeshes.push(rim);
-            });
-
-            return group;
-        }
-
-        function loadProceduralFallback() {
-            if (currentModel) scene.remove(currentModel);
-            currentModel = createProceduralF1Car(0xE10600, 0x111111);
-            currentModel.scale.setScalar(1.22);
-            scene.add(currentModel);
-            setViewportLoader(false);
-            updateHUDStatus("3D F1 STUDIO ACTIVE (DROP .GLB TO SWAP)");
-        }
-
-        // --- 3. .GLB LOADER (AUTO-CENTER & AUTO-SCALE) ---
-        function loadGLBFromURL(url, successLabel = "CUSTOM .GLB CAR LOADED", silentFallback = false) {
-            setViewportLoader(true, "LOADING 3D CHASSIS...");
-            const onLoadFail = () => {
-                if (!currentModel) loadProceduralFallback();
-                else setViewportLoader(false);
-                if (!silentFallback && window.showF1Toast) {
-                    window.showF1Toast("COULD NOT PARSE .GLB FILE — SHOWING STUDIO CHASSIS.");
-                }
-            };
-
-            try {
-                const loader = new GLTFLoader();
-                loader.load(
-                    url,
-                    (gltf) => {
-                        if (currentModel) scene.remove(currentModel);
-                        proceduralBodyMeshes = [];
-                        proceduralAccentMeshes = [];
+            const loader = new GLTFLoader();
+            loader.load(
+                MODEL_PATH,
+                (gltf) => {
+                    try {
+                        if (currentModel) {
+                            scene.remove(currentModel);
+                        }
 
                         const model = gltf.scene;
+
+                        // Retain original GLB materials and textures intact; enable shadow casting & receiving
                         model.traverse((child) => {
                             if (child.isMesh) {
                                 child.castShadow = true;
@@ -978,77 +833,56 @@
                             }
                         });
 
-                        // Auto-scale to ideal studio length (~4.8 units) and ground at y = 0
-                        const box = new THREE.Box3().setFromObject(model);
-                        const size = box.getSize(new THREE.Vector3());
+                        // 1. Calculate unscaled bounding box
+                        model.updateMatrixWorld(true);
+                        const initialBox = new THREE.Box3().setFromObject(model);
+                        const size = initialBox.getSize(new THREE.Vector3());
                         const maxDim = Math.max(size.x, size.y, size.z) || 1;
-                        const scale = 4.8 / maxDim;
+
+                        // 2. Scale model so the car fits the viewport stage (~4.8 units length)
+                        const targetDim = 4.8;
+                        const scale = targetDim / maxDim;
                         model.scale.setScalar(scale);
 
+                        // 3. Recompute bounding box to center horizontally and place tires on ground (y = 0)
+                        model.updateMatrixWorld(true);
                         const scaledBox = new THREE.Box3().setFromObject(model);
                         const center = scaledBox.getCenter(new THREE.Vector3());
+
                         model.position.x -= center.x;
                         model.position.z -= center.z;
                         model.position.y -= scaledBox.min.y;
 
+                        model.updateMatrixWorld(true);
+
                         currentModel = model;
                         scene.add(currentModel);
+
                         setViewportLoader(false);
-                        updateHUDStatus(successLabel);
-                        tweenCameraTo('hero');
-                    },
-                    undefined,
-                    onLoadFail
-                );
-            } catch (_) {
-                onLoadFail();
-            }
-        }
-
-        function handleGLBFile(file) {
-            if (!file) return;
-            const ext = file.name.toLowerCase();
-            if (!ext.endsWith('.glb') && !ext.endsWith('.gltf')) {
-                if (window.showF1Toast) window.showF1Toast("PLEASE UPLOAD A .GLB OR .GLTF 3D MODEL.");
-                return;
-            }
-            const blobUrl = URL.createObjectURL(file);
-            loadGLBFromURL(blobUrl, `LOADED: ${file.name.toUpperCase()}`, false);
-        }
-
-        function initGLBUploadAndDrop() {
-            const fileInput = document.getElementById('glb-file-input');
-            const dropZone = document.getElementById('drop-zone');
-            const dragOverlay = document.getElementById('drag-overlay');
-
-            fileInput?.addEventListener('change', (e) => {
-                const file = e.target.files?.[0];
-                if (file) handleGLBFile(file);
-                e.target.value = '';
-            });
-
-            if (dropZone && dragOverlay) {
-                ['dragenter', 'dragover'].forEach(evt => {
-                    dropZone.addEventListener(evt, (e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        dragOverlay.classList.remove('hidden');
-                    });
-                });
-
-                ['dragleave', 'drop'].forEach(evt => {
-                    dropZone.addEventListener(evt, (e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        dragOverlay.classList.add('hidden');
-                    });
-                });
-
-                dropZone.addEventListener('drop', (e) => {
-                    const file = e.dataTransfer?.files?.[0];
-                    if (file) handleGLBFile(file);
-                });
-            }
+                        updateHUDStatus("RED BULL RB16B // ACTIVE");
+                        const statusDot = document.getElementById('hud-status-dot');
+                        if (statusDot) {
+                            statusDot.className = 'w-2 h-2 rounded-full bg-emerald-400';
+                        }
+                        console.log("Red Bull RB16B 3D model loaded successfully:", model);
+                    } catch (err) {
+                        handleModelError(err);
+                    }
+                },
+                (xhr) => {
+                    if (xhr.lengthComputable && xhr.total > 0) {
+                        const percent = Math.round((xhr.loaded / xhr.total) * 100);
+                        setViewportLoader(true, `LOADING RED BULL RB16B (${percent}%)...`);
+                        updateHUDStatus(`DOWNLOADING 3D CHASSIS ${percent}%...`);
+                    } else if (xhr.loaded > 0) {
+                        const mb = (xhr.loaded / (1024 * 1024)).toFixed(1);
+                        setViewportLoader(true, `LOADING RED BULL RB16B (${mb} MB)...`);
+                    }
+                },
+                (error) => {
+                    handleModelError(error);
+                }
+            );
         }
 
         // --- 4. CAMERA PRESET TWEENING & UI CONTROLS ---
@@ -1092,17 +926,12 @@
             });
         }
 
-        // Global Livery Hook for Constructor Cards
+        // Global Livery Hook for Constructor Cards - keeps GLB textures and materials intact
         window.apply3DLivery = function(primaryHex, secondaryHex, teamName) {
-            const swatch = document.getElementById('hud-livery-swatch');
-            const nameEl = document.getElementById('hud-livery-name');
-            if (swatch) swatch.style.backgroundColor = primaryHex;
-            if (nameEl) nameEl.innerText = `LIVERY: ${teamName.toUpperCase()}`;
-
-            const pColor = new THREE.Color(primaryHex);
-            const sColor = new THREE.Color(secondaryHex);
-            proceduralBodyMeshes.forEach(m => m.material?.color?.copy(pColor));
-            proceduralAccentMeshes.forEach(m => m.material?.color?.copy(sColor));
+            // Keep original GLB textures and materials intact. Do not repaint the 3D model.
+            if (window.showF1Toast) {
+                window.showF1Toast(`${teamName.toUpperCase()} selected. 3D Garage displays official Red Bull RB16B.`);
+            }
         };
 
         // --- 5. ANIMATION LOOP ---
